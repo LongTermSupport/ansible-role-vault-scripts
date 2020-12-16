@@ -124,6 +124,10 @@ function getFilePathOrEmptyString(){
 
 function getProjectFilePathCreateIfNotExists(){
   local _filePath="$1"
+  if [[ "" == "$_filePath" ]]; then
+    echo ""
+    return 0
+  fi
   if [[ "$_filePath" != "$projectDir"* ]]; then
     _filePath="$projectDir/$_filePath"
   fi

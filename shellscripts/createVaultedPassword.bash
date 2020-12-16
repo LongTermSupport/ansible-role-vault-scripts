@@ -5,7 +5,7 @@ cd "$scriptDir"
 source ./_top.inc.bash
 
 # Usage
-if (($# < 1 || $# > 3)); then
+if (($# < 2 || $# > 3)); then
   echo "
   Usage:
 
@@ -14,6 +14,7 @@ if (($# < 1 || $# > 3)); then
   $(basename $0) [specifiedEnv] [varname] (optional: outputToFile)
 
   "
+  exit 1
 fi
 
 # Set variables

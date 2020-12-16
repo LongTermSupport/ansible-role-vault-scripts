@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: ""
+  author: Ona Engineering
+  description: your role description
+  company: Ona Systems Inc
+  license: Apache-2.0
+  min_ansible_version: 2.8
+  galaxy_tags: []
+  platforms:
+    - name: Ubuntu
+      versions:
+        - 16.04
+        - 18.04
+
+dependencies: []

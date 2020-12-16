@@ -1,0 +1,19 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ansible-role-ubuntu-18.04
+    image: solita/ubuntu-systemd:18.04
+    dockerfile: Dockerfile.j2
+    privileged: true
+    command: /sbin/init
+provisioner:
+  name: ansible
+lint: |
+  set -e
+  yamllint .
+  ansible-lint .
+verifier:
+  name: ansible

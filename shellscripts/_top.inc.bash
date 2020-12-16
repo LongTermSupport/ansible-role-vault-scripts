@@ -128,7 +128,7 @@ function getProjectFilePathCreateIfNotExists(){
     _filePath="$projectDir/$_filePath"
   fi
   if [[ -f "$_filePath" ]]; then
-    realpath "$projectDir/$_filePath"
+    realpath "$_filePath"
     return 0
   fi
   mkdir -p "$(dirname "$_filePath")"

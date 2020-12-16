@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-readonly scriptDir=$(dirname "$(readlink -f "$0")")
+readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)"
 cd "$scriptDir"
 # Set up bash
-source ./../_top.inc.bash
+source ./_top.inc.bash
 
 # Usage
 if (($# < 1 || $# > 3)); then

@@ -1,16 +1,3 @@
-# Check if scriptDir has been defined
-if [[ -z "$scriptDir" ]]; then
-  # shellcheck disable=SC2016
-  echo '
-scriptDir has not been defined, this should be set using something like:
-
-  readonly scriptDir=$(dirname $(readlink -f "$0"))
-
-Exiting
-  '
-  exit 1
-fi
-
 #Bring in functions
 source ./_vault.functions.inc.bash
 
@@ -22,13 +9,15 @@ fi
 
 ansibleVersionAtLeast "2.9.9"
 
-readonly vaultSecretsPath="$scriptDir/../../vault-pass-${specifiedEnv}.secret"
+readonly vaultSecretsPath="$projectDir/vault-pass-${specifiedEnv}.secret"
 
-readonly environmentPath="$scriptDir/../../environment/"
+readonly environmentPath="$projectDir/environment/"
 
 export environmentArray
 readarray -t \
   environmentArray <<<"$(find "$environmentPath" -maxdepth 1 -mindepth 1 -type d -exec basename {} \;)"
+
+assertValidEnv "$specifiedEnv"
 
 if [[ ! -f $vaultSecretsPath ]]; then
   echo "Vault Pass File not found at $vaultSecretsPath, you need to create this first"

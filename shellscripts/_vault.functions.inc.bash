@@ -110,3 +110,31 @@ function validateOutputToFile(){
   mkdir -p "$_outputToFileDirname" || echo "already exists"
 fi
 }
+
+function assertFilesExist(){
+  for file in "$@";
+  do
+    if [[ "" == "$file" ]]; then
+      echo "Empty file path"
+      exit 1
+    fi
+    if [[ ! -f $file ]]; then
+      echo "No file found at $file"
+      exit 1
+    fi
+  done
+}
+
+function assertFilesDoNotExist(){
+  for file in "$@";
+  do
+    if [[ "" == "$file" ]]; then
+      echo "Empty file path"
+      exit 1
+    fi
+    if [[ -f $file ]]; then
+      echo "Existing file found at $file"
+      exit 1
+    fi
+  done
+}

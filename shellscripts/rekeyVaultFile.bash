@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
-readonly scriptDir=$(dirname "$(readlink -f "$0")")
+readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)"
 cd "$scriptDir"
 # Set up bash
-source ./../_top.inc.bash
-# Source vault top
-source ./_vault.functions.inc.bash
+source ./_top.inc.bash
 
 #Usage
 if (( $# < 5 )); then
   echo "
   Usage
 
-  $(basename $0) [currentKeyFilePath] [currentKeyFileID] [newKeyFilePath] [newKeyFileID] [vaultFilePaths ...]
+  $(basename $0) [currentKeyFileID] [currentKeyFilePath] [newKeyFileID] [newKeyFilePath] [vaultFilePaths ...]
 
   "
   exit 1
@@ -19,18 +17,38 @@ fi
 
 #set -x
 
-readonly currentKeyFilePath="$1"
-readonly currentKeyFileID="$2"
+# for abs paths just use them, otherwise check for path to file in project root
+function getFilePath(){
+  local _filePath="$1"
+  if [[ -f "$_filePath" ]]; then
+    realpath "$_filePath"
+    return 0
+  fi
+  if [[ -f "$projectDir/$_filePath" ]]; then
+    realpath "$projectDir/$_filePath"
+    return 0
+  fi
+  return 1
+}
 
-readonly newKeyFilePath="$3"
-readonly newKeyFileID="$4"
+readonly currentKeyFileID="$1"
+readonly currentKeyFilePath="$(getFilePath "$2")"
+
+readonly newKeyFileID="$3"
+readonly newKeyFilePath="$(getFilePath "$4")"
+
+readonly specifiedEnv="$currentKeyFileID"
+source ./_vault.inc.bash
 
 ## Assertions
 assertFilesExist "$currentKeyFilePath" "$newKeyFilePath"
 
-
+# loop over file glob of files to rekey
 for vaultFilePath in "${@:5}"; do
+  # get abs path
+  vaultFilePath="$(getFilePath "$vaultFilePath")"
 
+  # generate the new filename by prefix with 'new_'
   newVaultFilePath="$(dirname "$vaultFilePath")/new_$( basename "$vaultFilePath")";
   echo "
 
@@ -87,8 +105,8 @@ for vaultFilePath in "${@:5}"; do
     param="${params[$i]%%[[:space:]]}"
     secret="${valuesDecrypted[i]}"
     encrypted="$(echo -n "$secret" | ansible-vault encrypt_string \
-    --vault-id="$newKeyFileID@$newKeyFilePath" \
-    --stdin-name "$param")"
+      --vault-id="$newKeyFileID@$newKeyFilePath" \
+      --stdin-name "$param")"
     set +x
     writeEncrypted "$encrypted" "$param" "$newVaultFilePath"
   done

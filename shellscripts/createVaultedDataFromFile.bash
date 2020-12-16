@@ -25,7 +25,7 @@ fi
 readonly specifiedEnv="$1"
 readonly varname="$2"
 readonly pathToFileToEncrypt="$3"
-readonly outputToFile="${4:-'/dev/null'}"
+readonly outputToFile="$(getFilePathOrEmptyString "${4:-}")"
 
 # Source vault top
 source ./_vault.inc.bash

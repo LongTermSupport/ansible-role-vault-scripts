@@ -1,6 +1,4 @@
-function error() {
-  printf "\n########################\n### ERROR: %s\n########################" "$*" >&2;
-}
+
 
 function assertValidEnv(){
   local _env="$1"
@@ -8,7 +6,7 @@ function assertValidEnv(){
     return 0
   fi
   error "Error, specified env $_env is not found in ${environmentArray[*]}"
-  return 1
+  exitFromFunction
 }
 
 function assertPrefixedWithVault(){
@@ -79,7 +77,7 @@ function ansibleVersionAtLeast () {
         if ((10#${atLeastVersionArray[i]} > 10#${ansibleVersionArray[i]}))
         then
             error "Ansible version $ansibleVersion is lower than minimum version $atLeastVersion $extraErrorMessage"
-            return 1
+            exitFromFunction
         fi
         if ((10#${atLeastVersionArray[i]} < 10#${ansibleVersionArray[i]}))
         then
@@ -95,20 +93,20 @@ function validateOutputToFile(){
   local _varname="$2"
   local _outputToFileDirname
   if [[ "" != "$_outputToFile" ]]; then
-  if [[ "$_outputToFile" != /* ]]; then
-    echo "Error, outputToFile must be an absolute path, you have passed in: '$_outputToFile'. Try using "'$(pwd)/path/to/file'
-    exit 1
-  fi
-  if [[ -f $_outputToFile ]]; then
-    if [[ "" != "$(grep $_varname $_outputToFile)" ]]; then
-      echo " Error, $_varname already defined in file $_outputToFile"
-      exit 1
+    if [[ "$_outputToFile" != /* ]]; then
+      echo "Error, outputToFile must be an absolute path, you have passed in: '$_outputToFile'. Try using "'$(pwd)/path/to/file'
+      exitFromFunction
     fi
+    if [[ -f $_outputToFile ]]; then
+      if [[ "" != "$(grep $_varname $_outputToFile)" ]]; then
+        echo " Error, $_varname already defined in file $_outputToFile"
+        exitFromFunction
+      fi
+    fi
+    _outputToFileDirname="$(dirname $_outputToFile)"
+    echo "Ensuring $_outputToFileDirname directory exists"
+    mkdir -p "$_outputToFileDirname" || echo "already exists"
   fi
-  _outputToFileDirname="$(dirname $_outputToFile)"
-  echo "Ensuring $_outputToFileDirname directory exists"
-  mkdir -p "$_outputToFileDirname" || echo "already exists"
-fi
 }
 
 function assertFilesExist(){
@@ -116,11 +114,11 @@ function assertFilesExist(){
   do
     if [[ "" == "$file" ]]; then
       echo "Empty file path"
-      exit 1
+      exitFromFunction
     fi
     if [[ ! -f $file ]]; then
       echo "No file found at $file"
-      exit 1
+      exitFromFunction
     fi
   done
 }
@@ -130,11 +128,11 @@ function assertFilesDoNotExist(){
   do
     if [[ "" == "$file" ]]; then
       echo "Empty file path"
-      exit 1
+      exitFromFunction
     fi
     if [[ -f $file ]]; then
       echo "Existing file found at $file"
-      exit 1
+      exitFromFunction
     fi
   done
 }

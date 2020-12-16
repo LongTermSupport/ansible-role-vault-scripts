@@ -30,7 +30,7 @@ fi
 readonly specifiedEnv="$1"
 readonly varname_prefix="$2"
 readonly email="$3"
-readonly outputToFile="${4:-}"
+readonly outputToFile="$(getFilePathOrEmptyString "${4:-}")"
 readonly keepKeys="${5:-no}"
 
 # Source vault top

@@ -21,7 +21,7 @@ fi
 readonly specifiedEnv="$1"
 readonly varname="$2"
 readonly string="$3"
-readonly outputToFile="${4:-}"
+readonly outputToFile="$(getFilePathOrEmptyString "${4:-}")"
 
 # Source vault top
 source ./_vault.inc.bash

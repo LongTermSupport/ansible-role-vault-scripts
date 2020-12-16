@@ -19,7 +19,7 @@ fi
 # Set variables
 readonly specifiedEnv="$1"
 readonly varname="$2"
-readonly outputToFile="${3:-}"
+readonly outputToFile="$(getProjectFilePathCreateIfNotExists "${3:-}")"
 readonly password='=+'"$(openssl rand -base64 32)"
 
 # Source vault top

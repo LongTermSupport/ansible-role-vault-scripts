@@ -24,7 +24,7 @@ fi
 # Set variables
 readonly specifiedEnv="$1"
 readonly pathToFileToParseVarsFrom="$2"
-readonly outputToFile="${3:-}"
+readonly outputToFile="$(getFilePathOrEmptyString "${3:-}")"
 
 # Assertions
 readarray -t varnames <<<"$(grep -Po '^([^: #]+)' "$pathToFileToParseVarsFrom" )"

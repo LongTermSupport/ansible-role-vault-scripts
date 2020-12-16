@@ -17,19 +17,7 @@ fi
 
 #set -x
 
-# for abs paths just use them, otherwise check for path to file in project root
-function getFilePath(){
-  local _filePath="$1"
-  if [[ -f "$_filePath" ]]; then
-    realpath "$_filePath"
-    return 0
-  fi
-  if [[ -f "$projectDir/$_filePath" ]]; then
-    realpath "$projectDir/$_filePath"
-    return 0
-  fi
-  return 1
-}
+
 
 readonly currentKeyFileID="$1"
 readonly currentKeyFilePath="$(getFilePath "$2")"

@@ -1,2 +1,4 @@
 ---
-# tasks file for role
+- name: Dump Secrets
+  import_tasks: dump-secrets.yml
+  tags: dump-secrets

@@ -64,6 +64,8 @@ You can pass a second `update` argument if you want to overwrite an existing fil
 
 You should ensure your secret files are NOT tracked by git and are never committed. Instead you MUST make sure you note down the secret file contents wherever you manage secrets, eg a password manager or other secure secrets storage system
 
+(Note - Ansible 2.10 allows storing multiple keys in a single file prefixed with the key ID, however for the sake of backwards compat, we use a separate file for each key. You could choose to consolidate these into a single file if you are using 2.10 or greater)
+
 ### Create Vaulted Password
 
 This script will generate as password string and then encrypt it for you, generating yaml that assigns the encrrypt password to the specified variable

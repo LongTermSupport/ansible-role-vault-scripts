@@ -9,3 +9,4 @@ Icon
 .vagrant
 test
 *.pyc
+.idea

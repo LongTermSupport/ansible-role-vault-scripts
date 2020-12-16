@@ -5,7 +5,7 @@ cd "$scriptDir"
 source ./_top.inc.bash
 
 # Usage
-if (( $# < 2 ))
+if (( $# < 3 ))
 then
     echo "
 

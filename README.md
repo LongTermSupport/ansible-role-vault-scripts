@@ -81,7 +81,7 @@ For example, in the `dev` environment, generate a password and vault it, then wr
 
 ```bash
 
-bash shellscripts/vault/createVaultedPassword.bash dev vault_pass_user_foo ./environment/dev/vault_user_passwords.yml
+bash shellscripts/vault/createVaultedPassword.bash dev vault_pass_user_foo ./environment/dev/group_vars/all/vault_user_passwords.yml
 
 ```
 
@@ -91,6 +91,40 @@ As above, but instead of writing to file, just write to stdout so that you can c
 bash shellscripts/vault/createVaultedPassword.bash dev vault_pass_user_foo
 
 ```
+
+### Create Vaulted SSH Key Pair
+
+This script will generate password protected private and public keys, encrypt them as strings and then assign the passphrase and the public/private key to variables that are prefixed with teh prefix you specify. Finally this can optionally be written directly to the file you specify as normal
+
+For example
+
+```bash
+
+# echo to stdout
+bash shellscripts/vault/createVaultedSshKeyPair.bash dev vault_default ops@domain.com
+
+# write directly to file
+bash shellscripts/vault/createVaultedSshKeyPair.bash dev vault_default ops@domain.com ./environment/dev/group_vars/all/vault_ssh_keys.yml
+
+```
+
+Will generate the following variables (truncated for readability):
+
+```yaml
+
+vault_default_id_rsa_passphrase: !vault |
+          $ANSIBLE_VAULT;1.2;AES256;dev
+          37383634643132346565376332663265363435316431323236626561626263373965366230313035 (...)
+vault_default_id_rsa: !vault |
+          $ANSIBLE_VAULT;1.2;AES256;dev
+          63373964336530653133336565306533626165646338633061636363666132363731656632636435 (...)
+vault_default_id_rsa_pub: !vault |
+          $ANSIBLE_VAULT;1.2;AES256;dev
+          37666166393434346539356139393432636134633239643531623761396333323761313435663136 (...)
+
+
+```
+
 
 ### Dump Secrets
 

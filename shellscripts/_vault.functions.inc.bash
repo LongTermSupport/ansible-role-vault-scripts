@@ -36,9 +36,15 @@ function writeEncrypted(){
   ##########################################################################
   \n" "$(basename $0)" "$(date)" >"$_outputToFile"
   fi
-
+  ensureFileEndsInNewline "$_outputToFile"
   echo "$_encrypted" >> "$_outputToFile"
   echo "$_varname created and added to $_outputToFile"
+}
+
+# @see https://unix.stackexchange.com/a/31955
+function ensureFileEndsInNewline(){
+  local _filePath="$1"
+  sed -i -e '$a\' "$_filePath"
 }
 
 function ansibleVersion(){

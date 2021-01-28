@@ -20,6 +20,17 @@ function assertPrefixedWithVault(){
   echo "$_varname"
 }
 
+function assertIsEmailAddress(){
+  local _email="$1"
+  if [[ "$_email" != *@* ]];
+  then
+    error "Error, $_email does not look like an email address"
+    usage
+    exit 1
+  fi
+  echo "$_email"
+}
+
 function writeEncrypted(){
   local _encrypted="$1"
   local _varname="$2"

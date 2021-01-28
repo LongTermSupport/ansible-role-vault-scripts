@@ -4,14 +4,14 @@ cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
 
-# Usage
-if (( $# < 3 ))
-then
-    echo "
+function usage(){
+  echo "
 
-    This script will generate a random password and then an SSH key pair protected by that password, then optionally add it to the file you specify. Finally it can either leave the generated key files in place or otherwise will delete them
+USAGE:
 
-    Usage ./$(basename $0) [specifiedEnv] [varname_prefix] [email] (optional: outputToFile) (optional: keepKeys)
+This script will generate a random password and then an SSH key pair protected by that password, then optionally add it to the file you specify. Finally it can either leave the generated key files in place or otherwise will delete them
+
+Usage ./$(basename $0) [specifiedEnv] [varname_prefix] [email] (optional: outputToFile) (optional: keepKeys)
 
 e.g
 
@@ -23,6 +23,12 @@ github_id_rsa
 github_id_rsa_pub
 
     "
+}
+
+# Usage
+if (( $# < 3 ))
+then
+    usage
     exit 1
 fi
 
@@ -40,6 +46,7 @@ source ./_vault.inc.bash
 # Assertions
 assertValidEnv "$specifiedEnv"
 assertPrefixedWithVault "$varname_prefix"
+assertIsEmailAddress "$email"
 validateOutputToFile "$outputToFile" "$varname_prefix"
 case "$keepKeys" in
   yes)

@@ -140,6 +140,7 @@ function getProjectFilePathCreateIfNotExists(){
   realpath "$_filePath"
 }
 
+
 # Write a formatted error message to stderr
 function error() {
   printf "\n\n########################\n### ERROR: %s\n########################\n\n" "$*" >&2;

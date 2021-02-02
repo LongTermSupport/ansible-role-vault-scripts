@@ -23,13 +23,23 @@ fi
 
 # Set variables
 readonly specifiedEnv="$1"
-readonly pathToFileToParseVarsFrom="$2"
+readonly pathToFileToParseVarsFrom="$(getFilePath $2)"
 readonly outputToFile="$(getFilePathOrEmptyString "${3:-}")"
 
+# Source vault top
+source ./_vault.inc.bash
+
 # Assertions
+assertFilesExist $pathToFileToParseVarsFrom
+
+# Read
 readarray -t varnames <<<"$(grep -Po '^([^: #]+)' "$pathToFileToParseVarsFrom" )"
 
 # loop through and add these to the new file
 for varname in "${varnames[@]}"; do
+    if [[ "" != "$(grep "^$varname" $outputToFile)" ]]; then
+      echo "$varname already set, skipping, in $outputToFile";
+      continue
+    fi
     bash ./createVaultedPassword.bash $specifiedEnv $varname $outputToFile
 done

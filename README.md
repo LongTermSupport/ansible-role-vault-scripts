@@ -92,6 +92,16 @@ bash shellscripts/vault/createVaultedPassword.bash dev vault_pass_user_foo
 
 ```
 
+### Create Vaulted String - eg Encrypt Specific Password or Other Secret
+
+If you need to encrypt a password that is predefined or has specific requirements not met by the auto generated password created with createVaultedPassword.bash then you can use this script
+
+For example, if we need a shorter password than the standard one:
+
+```bash
+bash shellscripts/vault/createVaultedString.bash prod vault_pass_user_foo "$(bash shellscripts/vault/generatePassword.bash 20)"
+```
+
 ### Create Vaulted SSH Key Pair
 
 This script will generate password protected private and public keys, encrypt them as strings and then assign the passphrase and the public/private key to variables that are prefixed with teh prefix you specify. Finally this can optionally be written directly to the file you specify as normal

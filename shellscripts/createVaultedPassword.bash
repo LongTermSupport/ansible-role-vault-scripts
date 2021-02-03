@@ -21,7 +21,7 @@ fi
 readonly specifiedEnv="$1"
 readonly varname="$2"
 readonly outputToFile="$(getProjectFilePathCreateIfNotExists "${3:-}")"
-readonly password='=+'"$(openssl rand -base64 32)"
+readonly password='=+'"$(scriptDir/generatePassword.bash)"
 
 # Source vault top
 source ./_vault.inc.bash

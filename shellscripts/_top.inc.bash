@@ -146,10 +146,12 @@ function error() {
   printf "\n\n########################\n### ERROR: %s\n########################\n\n" "$*" >&2;
 }
 
-######################################
-## Some useful info to output
-echo "
+if [[ '' == "${noHeader:=''}" ]]; then
+  ######################################
+  ## Some useful info to output
+  echo "
 ===========================================
 $(hostname &>/dev/null || echo 'no hostname set') $0 $@
 ===========================================
 "
+fi

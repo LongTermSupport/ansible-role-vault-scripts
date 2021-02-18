@@ -22,4 +22,9 @@ readonly specifiedEnv="$1"
 
 cd "$projectDir"
 
-ansible localhost -m import_role -a name=vault-scripts --extra-vars env_dir="$projectDir/environment/$specifiedEnv"
+ansible localhost \
+  -m import_role \
+  -a name=vault-scripts \
+  --vault-id "${specifiedEnv}@vault-pass-"${specifiedEnv}.secret \
+  -i "$projectDir/environment/$specifiedEnv" \
+  --extra-vars env_dir="$projectDir/environment/$specifiedEnv"

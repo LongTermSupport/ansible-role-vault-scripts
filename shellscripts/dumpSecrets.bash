@@ -28,14 +28,15 @@ cd "$projectDir"
 if [[ "" != "$singleVariable" ]]; then
   echo "
 Dumping Single Vaulted Variable: $singleVariable
-"
+" 1>&2
   ANSIBLE_STDOUT_CALLBACK=minimal ansible localhost \
   -m import_role \
   -a name="$roleName" \
   --vault-id "${specifiedEnv}@vault-pass-"${specifiedEnv}.secret \
   -i "$projectDir/environment/$specifiedEnv" \
   --extra-vars "env_dir='$projectDir/environment/$specifiedEnv' single_variable=$singleVariable" \
-  | grep -oP '(?<=msg": ").*?(?=")'
+  | grep -oP '(?<=msg": ").*?(?=")' \
+  | perl -pe 's/\\n/\n/g'
   echo
   exit 0
 fi

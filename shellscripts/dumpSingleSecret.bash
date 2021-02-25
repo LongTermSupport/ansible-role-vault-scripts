@@ -6,15 +6,14 @@ source ./_top.inc.bash
 
 
 # Usage
-if (($# < 1 )); then
+if (($# < 2 )); then
   echo "
   Usage:
 
-  This script will dump all the secrets in the specifiedEnv, unless the
-  singleVariable parameter is specified. In which case only the matching
-  variable is printed.
+  This script will dump the single variable secret specified in specifiedEnv and
+  given singleVariable name.
 
-  $(basename $0) specifiedEnv [singleVariable]
+  $(basename $0) specifiedEnv singleVariable
 
   "
   exit 1

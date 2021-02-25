@@ -1,4 +1,11 @@
 ---
 - name: Dump Secrets
+  when: single_variable is undefined
   import_tasks: dump-secrets.yml
   tags: dump-secrets
+
+- name: Dump single secret
+  when: single_variable is defined
+  tags: dump-secrets
+  debug:
+    msg: "{{ lookup('vars', single_variable) }}"

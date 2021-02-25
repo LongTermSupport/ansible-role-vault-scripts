@@ -148,6 +148,12 @@ For example, to view all secrets in the dev environment
 bash shellscripts/vault/dumpSecrets.bash dev
 ```
 
+Or you can dump a single secret:
+
+```bash
+bash shellscripts/vault/dumpSecrets.bash dev vault_root_pass
+```
+
 Example output:
 
 ```

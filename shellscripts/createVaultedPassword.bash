@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)"
+readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
@@ -11,7 +11,11 @@ if (($# < 2 || $# > 3)); then
 
   This script will generate a random password and encrypt it, then optionally add it to the file you specify
 
+  Please note, the varname must be prefixed with 'vault_'
+
   $(basename $0) [specifiedEnv] [varname] (optional: outputToFile)
+
+
 
   "
   exit 1

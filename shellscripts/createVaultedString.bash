@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)"
+readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
@@ -12,7 +12,16 @@ if (($# < 1 || $# > 3)); then
 
   This script will encrypt the string you specify , then optionally add it to the file you specify
 
+  If you are storing a password, consider using ./createVaultedPassword.bash instead
+  which will auto generate a long random password
+
   $(basename $0) [specifiedEnv] [varname] [string] (optional: outputToFile)
+
+  Please note, the varname must be prefixed with 'vault_'
+
+  e.g
+
+  ./$(basename $0) dev vault_github 'MySecretValue'
 
   "
   exit 1

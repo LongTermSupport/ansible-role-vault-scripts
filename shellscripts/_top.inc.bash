@@ -10,20 +10,6 @@ Exiting
   exit 1
 fi
 
-######################################
-## Basic Setup
-
-# assumes scriptDir is shellscripts/vault
-readonly projectDir="$(dirname "$( dirname "$scriptDir")")"
-
-if [[ ! -f $projectDir/ansible.cfg ]]; then
-  echo "
-
-  Failed to find project root directory, or the project does not contain ansible.cfg file
-
-  "
-  exit 1
-fi
 
 #####################################
 ## Make BASH fail more safely
@@ -146,6 +132,22 @@ function error() {
   printf "\n\n########################\n### ERROR: %s\n########################\n\n" "$*" >&2;
 }
 
+function findAnsibleCfgDir(){
+  local cwd ansibleCfgPath
+  cwd="$(pwd)"
+  ansibleCfgPath="$cwd/ansible.cfg"
+  while [[ "$cwd" != "/" && ! -f "$ansibleCfgPath" ]]; do
+    cwd="$(dirname "$cwd")"
+    ansibleCfgPath="$cwd/ansible.cfg"
+  done
+  if [[ -f "$ansibleCfgPath" ]]; then
+    echo "$cwd"
+    return 0
+  fi
+  error "Failed finding ansibleCfgPath" >&2
+  return 0
+}
+
 if [[ '' == "${noHeader:=''}" ]]; then
   ######################################
   ## Some useful info to output
@@ -154,4 +156,17 @@ if [[ '' == "${noHeader:=''}" ]]; then
 $(hostname &>/dev/null || echo 'no hostname set') $0 $@
 ===========================================
 "
+fi
+
+# assumes scriptDir is shellscripts/vault
+#readonly projectDir="$(dirname "$( dirname "$scriptDir")")"
+readonly projectDir="$(findAnsibleCfgDir)"
+
+if [[ ! -f $projectDir/ansible.cfg ]]; then
+  echo "
+
+  Failed to find project root directory, or the project does not contain ansible.cfg file
+
+  "
+  exit 1
 fi

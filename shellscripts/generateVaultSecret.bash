@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)"
+readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash

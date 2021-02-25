@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)"
+readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
@@ -20,11 +20,13 @@ fi
 
 readonly specifiedEnv="$1"
 
+readonly roleName="$(basename "$(dirname "$scriptDir")")"
+
 cd "$projectDir"
 
 ansible localhost \
   -m import_role \
-  -a name=vault-scripts \
+  -a name="$roleName" \
   --vault-id "${specifiedEnv}@vault-pass-"${specifiedEnv}.secret \
   -i "$projectDir/environment/$specifiedEnv" \
   --extra-vars env_dir="$projectDir/environment/$specifiedEnv"

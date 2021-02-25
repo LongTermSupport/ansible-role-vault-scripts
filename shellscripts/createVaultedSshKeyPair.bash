@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)"
+readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
@@ -13,9 +13,11 @@ This script will generate a random password and then an SSH key pair protected b
 
 Usage ./$(basename $0) [specifiedEnv] [varname_prefix] [email] (optional: outputToFile) (optional: keepKeys)
 
+Please note, the varname_prefix must start with 'vault_'
+
 e.g
 
-./$(basename $0) dev github
+./$(basename $0) dev vault_github
 
 To generate a private and public key with variables
 

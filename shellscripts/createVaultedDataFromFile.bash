@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)"
+readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
@@ -11,11 +11,14 @@ then
 
     This script will allow you to create a vaulted string that is the contents of the specified file, then optionally add it to the file you specify
 
-    Usage ./$(basename $0) [specifiedEnv] [varname] [path to file] (output to file, defaults to dev/null)
+    Usage ./$(basename $0) [specifiedEnv] [varname] [path to file] (output to file, defaults to
+    dev/null)
 
 e.g
 
-./$(basename $0) ~/ssh/id_rsa dev privkey
+Please note, the varname must be prefixed with 'vault_'
+
+./$(basename $0) ~/ssh/id_rsa dev vault_privkey
 
     "
     exit 1

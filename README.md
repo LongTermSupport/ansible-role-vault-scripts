@@ -10,7 +10,7 @@ To install this into your project, first you need to add the following to your `
 # Vault Script
  - src: https://github.com/LongTermSupport/ansible-role-vault-scripts
    scm: git
-   name: vault-scripts                                                                                                            
+   name: lts.vault-scripts
    version: master
 ```
 
@@ -30,7 +30,7 @@ You should set up a symlink from your project shellscripts folder to the shellsc
 cd {{ project_root }}
 mkdir shellscripts
 cd shellscripts
-ln -s ../{{ roles_path }}/vault-scripts/shellscripts/ vault
+ln -s ../{{ roles_path }}/lts.vault-scripts/shellscripts/ vault
 ```
 ## Prerequisites
 
@@ -43,8 +43,8 @@ You must have the following set up for these to work:
 
 ## Limitations
 
-* vaulted variables must be prefixed with `vault`
-* vaulted variables must be top level variables, not part of any nested structure, and also that they are prefixed with `vault`. 
+* vaulted variables must be prefixed with `vault_`
+* vaulted variables must be top level variables, not part of any nested structure. 
 
 It is suggested that whilst these are limitations, it is not necessarily a bad style to have to conform to. If you need to encrypt things in a nested structure, you will need to define them as a top level vaulted variable and then use that vaulted variable in your nested structure.
 
@@ -197,3 +197,48 @@ localhost                  : ok=3    changed=1    unreachable=0    failed=0    s
 ```
 
 Note - this script works on the convention that all vaulted variables are root level yaml variables, not part of any nested structure, and also that they are prefixed with `vault`. It is suggested that whilst this is a limitation, it is not necessarily a bad style to have to conform to. If you need to encrypt things in a nested structure, you will need to define them as a top level vaulted variable and then use that vaulted variable in your nested structure.
+
+### ReKey Vault File
+
+You might have heard that using `encrypt-string` means that you can't change your encryption password? Well this 
+script lets you do just that.
+
+The process is basically to decrypt using the current key and then re-encrypt using the new key. 
+
+First thing to do is prepare a new secret file, for which you can use the script already described under [Generate 
+Vault Secret](#generate-vault-secret)
+
+One you are ready to re-encrypt, it is strongly suggested that you have already commited your current state to allow 
+easy roll back
+
+Then you can run a command like:
+
+```bash
+bash shellscripts/vault/rekeyVaultFile.bash \
+  dev \
+  ./vault-pass-dev.secret \
+  dev \
+  ./vault-pass-dev.secret-new \
+  environment/dev/group_vars/all/vault-*
+```
+
+In the above, we are rekeying values in the `dev` environment, using the current secret file to read and the new 
+secret file to write
+
+When the process runs, it does not overwrite the existing files, instead it makes new versions prefixed with `new_`
+
+You can manually check these to confirm they are OK, and then when you are ready you might want to do something like:
+
+```bash
+# go to the folder where you have been rekeying
+cd environment/dev/group_vars/all/
+
+#remove old files
+rm -f vault-*
+
+#move new files into place
+for f in new_vault-*; do mv "$f" "${f#new_}"; done
+```
+
+And once you are done, you might want to [Dump Secrets](#dump-secrets) to confirm that everything is working as it 
+should

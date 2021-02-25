@@ -240,5 +240,10 @@ rm -f vault-*
 for f in new_vault-*; do mv "$f" "${f#new_}"; done
 ```
 
-And once you are done, you might want to [Dump Secrets](#dump-secrets) to confirm that everything is working as it 
-should
+Once you are done, first of all you should rename your new secret file so that it is now the same as the secret file 
+yuou have configured in `ansible.cfg`.
+
+Then you might want to [Dump Secrets](#dump-secrets) to confirm that everything is working as it 
+should.
+
+Finally remove your old key, you no longer need it.

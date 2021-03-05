@@ -74,7 +74,7 @@ writeEncrypted "$encrypted" "$varname" "$outputToFile"
 workDir=/tmp/_keys
 rm -rf $workDir
 mkdir $workDir
-ssh-keygen -t rsa -b 4096 -C "$email" -N "$password" -f $workDir/${varname_prefix}_id_rsa
+ssh-keygen -t ed25519 -C "$email" -N "$password" -f $workDir/${varname_prefix}_id_rsa
 
 # Write Variables
 encryptedPrivKey="$(cat "$workDir/${varname_prefix}_id_rsa" | ansible-vault encrypt_string \

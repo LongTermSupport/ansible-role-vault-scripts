@@ -1,7 +1,12 @@
 ---
-- name: Dump Secrets
+- name: Dump Group Vars Secrets
   when: single_variable is undefined
-  import_tasks: dump-secrets.yml
+  import_tasks: dump-group-vars-secrets.yml
+  tags: dump-secrets
+
+- name: Dump Host Vars Secrets
+  when: single_variable is undefined
+  import_tasks: dump-host-vars-secrets.yml
   tags: dump-secrets
 
 - name: Dump single secret

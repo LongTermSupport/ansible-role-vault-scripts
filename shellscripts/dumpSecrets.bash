@@ -6,20 +6,20 @@ source ./_top.inc.bash
 
 
 # Usage
-if (($# < 1 )); then
+if [[ "$*" == *-h* ]]; then
   echo "
   Usage:
 
   This script will dump all the secrets in the specifiedEnv
 
-  $(basename $0) [specifiedEnv] (optional: singleVariable to dump)
+  $(basename $0) (optional: singleVariable to dump) (optional: specifiedEnv - defaults to $defaultEnv)
 
   "
   exit 1
 fi
 
-readonly specifiedEnv="$1"
-readonly singleVariable="${2:-}"
+readonly singleVariable="${1:-}"
+readonly specifiedEnv="${2:-$defaultEnv}"
 
 readonly roleName="$(basename "$(dirname "$scriptDir")")"
 

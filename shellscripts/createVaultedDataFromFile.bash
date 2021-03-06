@@ -11,8 +11,7 @@ then
 
     This script will allow you to create a vaulted string that is the contents of the specified file, then optionally add it to the file you specify
 
-    Usage ./$(basename $0) [specifiedEnv] [varname] [path to file] (output to file, defaults to
-    dev/null)
+    Usage ./$(basename $0) [varname] [path to file] (optional: output to file, defaults to dev/null) (optional: specifiedEnv - defaults to $defaultEnv)
 
 e.g
 
@@ -25,10 +24,10 @@ Please note, the varname must be prefixed with 'vault_'
 fi
 
 # Set variables
-readonly specifiedEnv="$1"
-readonly varname="$2"
-readonly pathToFileToEncrypt="$3"
-readonly outputToFile="$(getFilePathOrEmptyString "${4:-}")"
+readonly varname="$1"
+readonly pathToFileToEncrypt="$2"
+readonly outputToFile="$(getFilePathOrEmptyString "${3:-}")"
+readonly specifiedEnv="${4:-$defaultEnv}"
 
 # Source vault top
 source ./_vault.inc.bash

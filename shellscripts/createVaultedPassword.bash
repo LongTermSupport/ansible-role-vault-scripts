@@ -5,7 +5,7 @@ cd "$scriptDir"
 source ./_top.inc.bash
 
 # Usage
-if (($# < 2 || $# > 3)); then
+if (($# < 1 || $# > 3)); then
   echo "
   Usage:
 
@@ -13,7 +13,7 @@ if (($# < 2 || $# > 3)); then
 
   Please note, the varname must be prefixed with 'vault_'
 
-  $(basename $0) [specifiedEnv] [varname] (optional: outputToFile)
+  $(basename $0) [varname] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv)
 
 
 
@@ -22,9 +22,10 @@ if (($# < 2 || $# > 3)); then
 fi
 
 # Set variables
-readonly specifiedEnv="$1"
-readonly varname="$2"
-readonly outputToFile="$(getProjectFilePathCreateIfNotExists "${3:-}")"
+readonly varname="$1"
+readonly outputToFile="$(getProjectFilePathCreateIfNotExists "${2:-}")"
+readonly specifiedEnv="${3:-$defaultEnv}"
+
 readonly password='=+'"$(scriptDir/generatePassword.bash)"
 
 # Source vault top

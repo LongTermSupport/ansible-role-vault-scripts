@@ -11,7 +11,7 @@ USAGE:
 
 This script will generate a random password and then an SSH key pair protected by that password, then optionally add it to the file you specify. Finally it can either leave the generated key files in place or otherwise will delete them
 
-Usage ./$(basename $0) [specifiedEnv] [varname_prefix] [email] (optional: outputToFile) (optional: keepKeys)
+Usage ./$(basename $0) [varname_prefix] [email] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv) (optional: keepKeys)
 
 Please note, the varname_prefix must start with 'vault_'
 
@@ -28,17 +28,17 @@ github_id_rsa_pub
 }
 
 # Usage
-if (( $# < 3 ))
+if (( $# < 2 ))
 then
     usage
     exit 1
 fi
 
 # Set variables
-readonly specifiedEnv="$1"
-readonly varname_prefix="$2"
-readonly email="$3"
-readonly outputToFile="$(getProjectFilePathCreateIfNotExists "${4:-}")"
+readonly varname_prefix="$1"
+readonly email="$2"
+readonly outputToFile="$(getProjectFilePathCreateIfNotExists "${3:-}")"
+readonly specifiedEnv="${4:-$defaultEnv}"
 readonly keepKeys="${5:-no}"
 
 # Source vault top

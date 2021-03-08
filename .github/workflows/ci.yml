@@ -1,8 +1,10 @@
 ---
 name: CI
 on:
-  - push
-  - pull_request
+  pull_request:
+  push:
+    branches:
+      - master
 
 jobs:
   test:
@@ -17,6 +19,21 @@ jobs:
       - name: Run Molecule tests
         uses: robertdebock/molecule-action@2.1.0
 
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    # XXX: we ignore the bash files that are included during execution from the list
+    # files passed to shellcheck. See https://unix.stackexchange.com/questions/164025/exclude-one-pattern-from-glob-match
+    # This still allows shellcheck to analyze them, but we don't pass them to shellcheck
+    # as individual shell scripts; to avoid it from complaining of undefined variables
+    - name: shellcheck
+      run: |
+        cd shellscripts
+        GLOBIGNORE="_*.inc.bash"
+        shellcheck -x *
+
   release:
     name: Release
     needs:
@@ -28,3 +45,4 @@ jobs:
         uses: robertdebock/galaxy-action@1.0.3
         with:
           galaxy_api_key: ${{ secrets.ansible_galaxy_api_key }}
+

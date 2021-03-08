@@ -32,6 +32,7 @@ jobs:
         path: "./shellscripts/" # Optional.
         pattern: "*.bash" # Optional.
         shellcheck_flags: --external-sources
+        level: info
 
   release:
     name: Release

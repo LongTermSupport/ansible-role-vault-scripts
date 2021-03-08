@@ -5,13 +5,13 @@ cd "$scriptDir"
 source ./_top.inc.bash
 
 # Usage
-if (( $# < 2 ))
+if (( $# < 1 ))
 then
     echo "
 
     This script will allow you to create a vaulted string that is the contents of the specified file, then optionally add it to the file you specify
 
-    Usage ./$(basename $0) [specifiedEnv] [pathToFileToParseVarsFrom] (outputToFile)
+    Usage ./$(basename $0) [pathToFileToParseVarsFrom] (optional: outputToFile) (optional:  specifiedEnv - defaults to $defaultEnv)
 
 e.g
 
@@ -22,9 +22,9 @@ e.g
 fi
 
 # Set variables
-readonly specifiedEnv="$1"
-readonly pathToFileToParseVarsFrom="$(getFilePath $2)"
-readonly outputToFile="$(getFilePathOrEmptyString "${3:-}")"
+readonly pathToFileToParseVarsFrom="$(getFilePath $1)"
+readonly outputToFile="$(getFilePathOrEmptyString "${2:-}")"
+readonly specifiedEnv="${3:-$defaultEnv}"
 
 # Source vault top
 source ./_vault.inc.bash

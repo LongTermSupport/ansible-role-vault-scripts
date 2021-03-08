@@ -11,13 +11,13 @@ if (($# < 1 )); then
 
   This script will generate a vault secret file for the specifiedEnv
 
-  $(basename $0) [specifiedEnv]
+  $(basename $0) (optional: specifiedEnv - defaults to $defaultEnv) (optional: update pass a second param of 'update' to overwrite an existing vault secret)
 
   "
   exit 1
 fi
 
-readonly specifiedEnv="$1"
+readonly specifiedEnv="${1:-$defaultEnv}"
 
 update=${2:-''}
 

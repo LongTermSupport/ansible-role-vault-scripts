@@ -15,7 +15,7 @@ if (($# < 1 || $# > 3)); then
   If you are storing a password, consider using ./createVaultedPassword.bash instead
   which will auto generate a long random password
 
-  $(basename $0) [specifiedEnv] [varname] [string] (optional: outputToFile)
+  $(basename $0)  [varname] [string] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv)
 
   Please note, the varname must be prefixed with 'vault_'
 
@@ -27,10 +27,10 @@ if (($# < 1 || $# > 3)); then
   exit 1
 fi
 
-readonly specifiedEnv="$1"
-readonly varname="$2"
-readonly string="$3"
-readonly outputToFile="$(getFilePathOrEmptyString "${4:-}")"
+readonly varname="$1"
+readonly string="$2"
+readonly outputToFile="$(getFilePathOrEmptyString "${3:-}")"
+readonly specifiedEnv="${4:-$defaultEnv}"
 
 # Source vault top
 source ./_vault.inc.bash

@@ -170,3 +170,5 @@ if [[ ! -f $projectDir/ansible.cfg ]]; then
   "
   exit 1
 fi
+
+readonly defaultEnv="${vaultScriptsDefaultEnv:-dev}"

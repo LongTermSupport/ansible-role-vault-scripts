@@ -52,12 +52,33 @@ It is suggested that whilst these are limitations, it is not necessarily a bad s
 
 For each script, execute without arguments to get usage instructions
 
+### Default and Specified Environment
+
+For all actions, an environment name is required. This will default to `dev`. 
+
+You can override this on a per script call basis by passing the env name for the `specifiedEnv` parameter, for example:
+
+```bash
+bash shellscripts/vault/generateVaultSecret.bash prod
+```
+
+Alternatively, you can `export vaultScriptsDefaultEnv='prod'` to define a default environment for your current session, for example
+```bash
+export vaultScriptsDefaultEnv=prod
+
+bash shellscripts/vault/generateVaultSecret.bash
+
+bash shellscripts/vault/createVaultedPassword.bash vault_pass_user_foo ./environment/$vaultScriptsDefaultEnv/group_vars/all/vault_user_passwords.yml
+
+bash shellscripts/vault/createVaultedSshKeyPair.bash vault_default ops@domain.com ./environment/$vaultScriptsDefaultEnv/group_vars/all/vault_ssh_keys.yml
+```
+
 ### Generate Vault Secret
 
 This script will generate a secret file for you with a good long chunk of random text
 
 ```bash
-bash shellscripts/vault/generateVaultSecret.bash dev
+bash shellscripts/vault/generateVaultSecret.bash
 ```
 eg `vault-pass-dev.secret`
 ```
@@ -81,14 +102,14 @@ For example, in the `dev` environment, generate a password and vault it, then wr
 
 ```bash
 
-bash shellscripts/vault/createVaultedPassword.bash dev vault_pass_user_foo ./environment/dev/group_vars/all/vault_user_passwords.yml
+bash shellscripts/vault/createVaultedPassword.bash vault_pass_user_foo ./environment/dev/group_vars/all/vault_user_passwords.yml
 
 ```
 
 As above, but instead of writing to file, just write to stdout so that you can copy paste it manually where ever you want
 ```bash
 
-bash shellscripts/vault/createVaultedPassword.bash dev vault_pass_user_foo
+bash shellscripts/vault/createVaultedPassword.bash vault_pass_user_foo
 
 ```
 
@@ -99,7 +120,7 @@ If you need to encrypt a password that is predefined or has specific requirement
 For example, if we need a shorter password than the standard one:
 
 ```bash
-bash shellscripts/vault/createVaultedString.bash prod vault_pass_user_foo "$(bash shellscripts/vault/generatePassword.bash 20)"
+bash shellscripts/vault/createVaultedString.bash vault_pass_user_foo "$(bash shellscripts/vault/generatePassword.bash 20)"
 ```
 
 ### Create Vaulted SSH Key Pair
@@ -111,10 +132,10 @@ For example
 ```bash
 
 # echo to stdout
-bash shellscripts/vault/createVaultedSshKeyPair.bash dev vault_default ops@domain.com
+bash shellscripts/vault/createVaultedSshKeyPair.bash vault_default ops@domain.com
 
 # write directly to file
-bash shellscripts/vault/createVaultedSshKeyPair.bash dev vault_default ops@domain.com ./environment/dev/group_vars/all/vault_ssh_keys.yml
+bash shellscripts/vault/createVaultedSshKeyPair.bash vault_default ops@domain.com ./environment/dev/group_vars/all/vault_ssh_keys.yml
 
 ```
 
@@ -145,13 +166,13 @@ For this, you can use this script
 For example, to view all secrets in the dev environment
 
 ```bash
-bash shellscripts/vault/dumpSecrets.bash dev
+bash shellscripts/vault/dumpSecrets.bash
 ```
 
 Or you can dump a single secret:
 
 ```bash
-bash shellscripts/vault/dumpSecrets.bash dev vault_root_pass
+bash shellscripts/vault/dumpSecrets.bash vault_root_pass
 ```
 
 Example output:

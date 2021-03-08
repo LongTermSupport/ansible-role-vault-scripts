@@ -158,8 +158,6 @@ $(hostname &>/dev/null || echo 'no hostname set') $0 $@
 "
 fi
 
-# assumes scriptDir is shellscripts/vault
-#readonly projectDir="$(dirname "$( dirname "$scriptDir")")"
 readonly projectDir="$(findAnsibleCfgDir)"
 
 if [[ ! -f $projectDir/ansible.cfg ]]; then

@@ -1,5 +1,3 @@
-
-
 function assertValidEnv(){
   local _env="$1"
   if [[ "${environmentArray[*]}" == *${_env}* ]]; then

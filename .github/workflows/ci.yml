@@ -1,8 +1,10 @@
 ---
 name: CI
 on:
-  - push
-  - pull_request
+  pull_request:
+  push:
+    branches:
+      - master
 
 jobs:
   test:
@@ -22,10 +24,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Run ShellCheck
-      uses: ludeeus/action-shellcheck@master
-      env:
-        SHELLCHECK_OPTS: -x
+    - name: shellcheck
+        uses: reviewdog/action-shellcheck@v1
+        with:
+          github_token: ${{ secrets.github_token }}
+          reporter: github-pr-review
+          path: "./shellscripts/" # Optional.
+          pattern: "*.bash" # Optional.
+          shellcheck_flags: --external-sources
 
   release:
     name: Release

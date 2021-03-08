@@ -1,5 +1,7 @@
 #Bring in functions
 
+# shellcheck source=./_top.inc.bash
+
 # shellcheck source=./_vault.functions.inc.bash
 source ./_vault.functions.inc.bash
 

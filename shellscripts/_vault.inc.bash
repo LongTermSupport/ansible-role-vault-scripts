@@ -1,4 +1,6 @@
 #Bring in functions
+
+# shellcheck source=./_vault.functions.inc.bash
 source ./_vault.functions.inc.bash
 
 # Basic sanity checks

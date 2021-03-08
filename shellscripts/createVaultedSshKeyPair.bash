@@ -21,8 +21,8 @@ e.g
 
 To generate a private and public key with variables
 
-github_id_rsa
-github_id_rsa_pub
+github
+github_pub
 
     "
 }
@@ -64,7 +64,7 @@ esac
 readonly password='=+'"$(openssl rand -base64 32)"
 
 #Write out encrypted Password
-readonly varname="${varname_prefix}_id_rsa_passphrase"
+readonly varname="${varname_prefix}_passphrase"
 encrypted="$(echo -n "$password" | ansible-vault encrypt_string \
   --vault-id="$specifiedEnv@$vaultSecretsPath" \
   --stdin-name $varname)"
@@ -74,20 +74,20 @@ writeEncrypted "$encrypted" "$varname" "$outputToFile"
 workDir=/tmp/_keys
 rm -rf $workDir
 mkdir $workDir
-ssh-keygen -t ed25519 -C "$email" -N "$password" -f $workDir/${varname_prefix}_id_rsa
+ssh-keygen -t ed25519 -C "$email" -N "$password" -f $workDir/${varname_prefix}
 
 # Write Variables
-encryptedPrivKey="$(cat "$workDir/${varname_prefix}_id_rsa" | ansible-vault encrypt_string \
+encryptedPrivKey="$(cat "$workDir/${varname_prefix}" | ansible-vault encrypt_string \
 --vault-id="$specifiedEnv@$vaultSecretsPath" \
---stdin-name "${varname_prefix}_id_rsa")"
+--stdin-name "${varname_prefix}")"
 
-writeEncrypted "$encryptedPrivKey" "${varname_prefix}_id_rsa" "$outputToFile"
+writeEncrypted "$encryptedPrivKey" "${varname_prefix}" "$outputToFile"
 
-encryptedPubKey="$(cat "$workDir/${varname_prefix}_id_rsa.pub" | ansible-vault encrypt_string \
+encryptedPubKey="$(cat "$workDir/${varname_prefix}.pub" | ansible-vault encrypt_string \
 --vault-id="$specifiedEnv@$vaultSecretsPath" \
---stdin-name "${varname_prefix}_id_rsa_pub")"
+--stdin-name "${varname_prefix}_pub")"
 
-writeEncrypted "$encryptedPubKey" "${varname_prefix}_id_rsa_pub" "$outputToFile"
+writeEncrypted "$encryptedPubKey" "${varname_prefix}_pub" "$outputToFile"
 
 # Clean up
 if [[ "yes" == "$keepKeys" ]]; then

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
-cd "$scriptDir"
-# Set up bash
+readonly scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+cd "$scriptDir" || exit 1
+
+# shellcheck source=./_top.inc.bash
 source ./_top.inc.bash
 
 

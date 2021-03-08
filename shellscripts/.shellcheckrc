@@ -1,0 +1,8 @@
+# Look for 'source'd files relative to the checked script,
+source-path=SCRIPTDIR
+
+# bash only
+shell=bash
+
+# Turn on warnings for unassigned uppercase variables
+enable=check-unassigned-uppercase

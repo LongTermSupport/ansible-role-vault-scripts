@@ -148,13 +148,47 @@ Will generate the following variables (truncated for readability):
 
 ```yaml
 
-vault_default_id_rsa_passphrase: !vault |
+vault_default_id_passphrase: !vault |
           $ANSIBLE_VAULT;1.2;AES256;dev
           37383634643132346565376332663265363435316431323236626561626263373965366230313035 (...)
-vault_default_id_rsa: !vault |
+vault_default_id: !vault |
           $ANSIBLE_VAULT;1.2;AES256;dev
           63373964336530653133336565306533626165646338633061636363666132363731656632636435 (...)
-vault_default_id_rsa_pub: !vault |
+vault_default_id_pub: !vault |
+          $ANSIBLE_VAULT;1.2;AES256;dev
+          37666166393434346539356139393432636134633239643531623761396333323761313435663136 (...)
+
+
+```
+
+### Create Vaulted SSH Deploy Key Pair
+
+This script will generate private and public keys with no passsword protection, encrypt them as strings and then assign the public/private key to variables that are prefixed with teh prefix you specify.
+
+**_Please do not use this for anything other than read only deploy keys_**
+
+Finally this can optionally be written directly to the file you specify as normal
+
+For example
+
+```bash
+
+# echo to stdout
+bash shellscripts/vault/createVaultedSshDeployKeyPair.bash vault_github_deploy ops@domain.com
+
+# write directly to file
+bash shellscripts/vault/createVaultedSshKeyPair.bash vault_github_deploy ops@domain.com ./environment/dev/group_vars/all/vault_ssh_keys.yml
+
+```
+
+Will generate the following variables (truncated for readability):
+
+```yaml
+
+vault_github_deploy_id: !vault |
+          $ANSIBLE_VAULT;1.2;AES256;dev
+          63373964336530653133336565306533626165646338633061636363666132363731656632636435 (...)
+vault_github_deploy_id_pub: !vault |
           $ANSIBLE_VAULT;1.2;AES256;dev
           37666166393434346539356139393432636134633239643531623761396333323761313435663136 (...)
 

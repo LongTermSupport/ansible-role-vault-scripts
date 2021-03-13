@@ -29,6 +29,7 @@ readonly specifiedEnv="$currentKeyFileID"
 source ./_vault.inc.bash
 
 ## Assertions
+assertYqInstalled
 assertFilesExist "$currentKeyFilePath" "$newKeyFilePath"
 
 # loop over file glob of files to rekey
@@ -53,10 +54,6 @@ for vaultFilePath in "${@:5}"; do
 
   # see https://stackoverflow.com/questions/43467180/how-to-decrypt-string-with-ansible-vault-2-3-0
   ## Process
-
-  if [[ ! -f /usr/bin/yq ]]; then
-    sudo bash -c "wget https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq"
-  fi
 
   readarray params < <(yq r $vaultFilePath --printMode p '*' -j)
   readarray valuesEncrypted < <(yq r $vaultFilePath --printMode v '*' -j)

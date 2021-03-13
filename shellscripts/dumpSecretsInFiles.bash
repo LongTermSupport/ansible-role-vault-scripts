@@ -17,10 +17,11 @@ fi
 
 #set -x
 
-
-
 readonly specifiedEnv="$1"
 source ./_vault.inc.bash
+
+assertYqInstalled
+
 
 # loop over file glob of files to rekey
 for vaultFilePath in "${@:2}"; do

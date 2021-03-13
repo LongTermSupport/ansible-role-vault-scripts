@@ -40,6 +40,11 @@ You must have the following set up for these to work:
 * `ansible.cfg` file in the root of your project
 * `environment/dev` folder containing your default dev environment (or whichever env name you choose to use)
 * You have the line `*.secret` in your project `.gitignore` file
+* You need to have `yq` installed
+    * You can install this with something like: 
+```
+sudo bash -c "wget https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq"  
+```
 
 ## Limitations
 
@@ -156,23 +161,45 @@ vault_default_id_rsa_pub: !vault |
 
 ```
 
+### Dump Secrets in Files
 
-### Dump Secrets
+This script will take a file glob of files that you want to pull vaulted variables out of. It will then use `yq` to parse out all the variables, find the vaulted ones, decrypt them and then dump all the output
+
+This can be convenient if you just want to look at a single file 
+
+It is the only solution for dumping host_var level secrets, or secrets in vars files or any other arbitrary file that may have secrets in.
+
+You are encouraged to store the majority of your secrets with the `group_vars` folder for your environment and can use the `dumpGroupSecrets.bash` script to dump these in bulk, or pull out a single variable, though you can use this script for group vars as well if you prefer
+
+Usage:
+
+```bash
+# Dump all host_vars files
+bash shellscripts/vault/dumpSecretsInFiles.bash dev environment/dev/host_vars/*.yml
+
+# Dump all group_vars files
+bash shellscripts/vault/dumpSecretsInFiles.bash dev environment/dev/group_vars/all/*.yml
+```
+
+### Dump Group Var Secrets
 
 Once you have some secrets stored in an environment folder, you will probably want a way to easily view them
 
+**_Note: this will only give you secrets in your group_vars - it will not include host_vars level secrets**
+If you want to view host secrets, use the `dumpSecretsinFiles.bash` script which can decrypt any file
+
 For this, you can use this script
 
-For example, to view all secrets in the dev environment
+For example, to view all group_vars secrets in the dev environment
 
 ```bash
-bash shellscripts/vault/dumpSecrets.bash
+bash shellscripts/vault/dumpGroupSecrets.bash
 ```
 
 Or you can dump a single secret:
 
 ```bash
-bash shellscripts/vault/dumpSecrets.bash vault_root_pass
+bash shellscripts/vault/dumpGroupSecrets.bash vault_root_pass
 ```
 
 Example output:
@@ -181,7 +208,7 @@ Example output:
 bash shellscripts/vault/dumpSecrets.bash dev
 
 ===========================================
- shellscripts/vault/dumpSecrets.bash dev
+ shellscripts/vault/dumpGroupSecrets.bash dev
 ===========================================
 
 

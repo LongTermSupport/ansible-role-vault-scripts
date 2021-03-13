@@ -153,3 +153,18 @@ function assertFilesDoNotExist(){
     fi
   done
 }
+
+function assertYqInstalled(){
+    if [[ ! -f /usr/bin/yq ]]; then
+      echo '
+
+      ERROR - this script requires yq to be installed
+
+      You might want to install with a command like:
+
+      sudo bash -c "wget https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq"
+
+      '
+      exit 1
+    fi
+}

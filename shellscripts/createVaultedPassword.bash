@@ -26,7 +26,7 @@ readonly varname="$1"
 readonly outputToFile="$(getProjectFilePathCreateIfNotExists "${2:-}")"
 readonly specifiedEnv="${3:-$defaultEnv}"
 
-readonly password='=+'"$(scriptDir/generatePassword.bash)"
+readonly password='=+'"$(./generatePassword.bash)"
 
 # Source vault top
 source ./_vault.inc.bash

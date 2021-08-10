@@ -12,14 +12,14 @@ if [[ "$*" == *-h* ]]; then
 
   This script will dump all the secrets in the specifiedEnv
 
-  $(basename $0) (optional: singleVariable to dump) (optional: specifiedEnv - defaults to $defaultEnv)
+  $(basename $0) (optional: specifiedEnv - defaults to $defaultEnv) (optional: singleVariable to dump)
 
   "
   exit 1
 fi
 
-readonly singleVariable="${1:-}"
-readonly specifiedEnv="${2:-$defaultEnv}"
+readonly specifiedEnv="${1:-$defaultEnv}"
+readonly singleVariable="${2:-}"
 
 readonly roleName="$(basename "$(dirname "$scriptDir")")"
 

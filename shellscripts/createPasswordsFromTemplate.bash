@@ -9,13 +9,16 @@ if (( $# < 1 ))
 then
     echo "
 
-    This script will allow you to create a vaulted string that is the contents of the specified file, then optionally add it to the file you specify
+    This script will allow you to create a new vault file based on an existing file. It will parse out all the
+    variables and then create new vaulted passwords for each variable
 
     Usage ./$(basename $0) [pathToFileToParseVarsFrom] (optional: outputToFile) (optional:  specifiedEnv - defaults to $defaultEnv)
 
 e.g
 
-./$(basename $0) ~/ssh/id_rsa dev privkey
+./$(basename $0) \
+  environment/dev/group_vars/all/vault-passwords-for-mysite.com.yml \
+  environment/dev/group_vars/all/vault-passwords-for-anothersite.com.yml
 
     "
     exit 1

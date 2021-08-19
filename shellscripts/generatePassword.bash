@@ -6,6 +6,6 @@ readonly noHeader="no header"
 source ./_top.inc.bash
 
 readonly passwordLength=${1:-32}
-readonly password='=+'"$(openssl rand -base64 "$passwordLength")"
+readonly password='='"$(openssl rand -base64 "$passwordLength")"
 
 echo $password

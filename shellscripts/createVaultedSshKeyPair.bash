@@ -61,7 +61,7 @@ case "$keepKeys" in
 esac
 
 # SSH Key Password
-readonly password='=+'"$(openssl rand -base64 32)"
+readonly password="$(./generatePassword.bash)"
 
 #Write out encrypted Password
 readonly varname="${varname_prefix}_passphrase"

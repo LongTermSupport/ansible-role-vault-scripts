@@ -64,7 +64,7 @@ workDir=/tmp/_keys
 rm -rf $workDir
 mkdir $workDir
 # clean up temp files on exit
-trap "rm -rf $workDir" EXIT
+#trap "rm -rf $workDir" EXIT
 
 
 cd $workDir
@@ -290,6 +290,9 @@ readonly fileClientPass="client_pass.txt"
 readonly fileClientKey="client.key"
 readonly fileClientCsr="client.csr"
 readonly fileClientCert="client.crt"
+readonly fileClientP12="client.p12"
+readonly fileClientP12Base64="client.p12.b64"
+
 
 echo "Generating a random client key pass and saving it to $workDir/$fileClientPass"
 "$scriptDir"/generatePassword.bash > "$fileClientPass"
@@ -324,6 +327,20 @@ echo "Verifying Client Cert"
 openssl verify -purpose sslclient -CAfile $fileCaCert $fileClientCert
 echo "done"
 
+echo "Creating P12 file at $workDir/$fileClientP12"
+cp "$fileCaPassfile" "${fileCaPassfile}_2"
+openssl pkcs12 \
+    -export \
+    -clcerts \
+    -passin file:"$fileClientPass" \
+    -passout file:"${fileCaPassfile}_2" \
+    -in "$fileClientCert" \
+    -inkey "$fileClientKey" \
+    -out "$fileClientP12"
+rm -f "${fileCaPassfile}_2"
+base64 $fileClientP12 > $fileClientP12Base64
+rm -f $fileClientP12
+
 echo "
 #################################
 Creating Ansible Vaulted Strings
@@ -336,7 +353,7 @@ for f in $workDir/*; do
       continue
     ;;
   esac
-  varname="${varname_prefix}__${fileName/\./_}"
+  varname="${varname_prefix}__${fileName//\./_}"
   printf "\n\n# Encrypting %s as %s\n" "$fileName" "$varname"
   encrypted="$(cat "$f" | ansible-vault encrypt_string \
     --vault-id="$specifiedEnv@$vaultSecretsPath" \
@@ -345,4 +362,4 @@ for f in $workDir/*; do
   writeEncrypted "$encrypted" "$varname" "$outputToFile"
 
 done
-rm -rf $workDir
+#rm -rf $workDir

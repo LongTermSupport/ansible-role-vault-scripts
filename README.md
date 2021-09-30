@@ -195,6 +195,35 @@ vault_github_deploy_id_pub: !vault |
 
 ```
 
+### Create Vaulted SSL Client Certificate and Authority
+
+If you want to secure an HTTP endpoint using client SSL certificates then this is a nice solution. This will create 
+a certificate authority and generate the client certificate that you can install or use with any client that needs 
+to access the HTTP endpoint.
+
+Client certificates are a nice alternative to basic auth. It is not brute forceable at all, you must have the 
+correct client certificate installed to be able to access an endpoint secured with client SSL.
+
+Usage:
+
+```bash
+
+bash shellscripts/vault/createVaultedSshClientCertificateAndAuth.bash \
+  [varname_prefix] \
+  [subj] \
+  (optional: outputToFile) \
+  (optional: specifiedEnv - defaults to $defaultEnv) \
+  (optional: keepKeys) (optional: clientSub)
+
+# For example:
+bash shellscripts/vault/createVaultedSshClientCertificateAndAuth.bash \
+  vault_client_foo \
+  '/C=GB/ST=England/L=Shipley/O=Foo Ltd/CN=Foo Ltd/emailAddress=info@foo.dev' \
+   ./environment/prod/group_vars/all/vault_client_certs_foo.yml \
+   prod
+
+```
+
 ### Dump Secrets in Files
 
 This script will take a file glob of files that you want to pull vaulted variables out of. It will then use `yq` to parse out all the variables, find the vaulted ones, decrypt them and then dump all the output

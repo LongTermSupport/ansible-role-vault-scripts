@@ -16,6 +16,13 @@ then
 
 e.g
 
+# Copy a dev env file into the prod env, creating new passwords for all variables
+./$(basename $0) \
+  environment/dev/group_vars/all/vault-passwords.yml \
+  environment/prod/group_vars/all/vault-passwords.yml \
+  prod
+
+# Copy a dev env file to another dev env file with a new name, creating new passwords for all variables
 ./$(basename $0) \
   environment/dev/group_vars/all/vault-passwords-for-mysite.com.yml \
   environment/dev/group_vars/all/vault-passwords-for-anothersite.com.yml

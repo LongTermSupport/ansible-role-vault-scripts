@@ -168,3 +168,14 @@ function assertYqInstalled(){
       exit 1
     fi
 }
+
+function assertFileInEnv(){
+  local filePath="$1"
+  local env="$2"
+  if [[ "$filePath" =~ environment/$env ]];
+  then
+    return
+  fi
+  echo "Filepath $filePath does not seem to be in environment/$env"
+  exitFromFunction
+}

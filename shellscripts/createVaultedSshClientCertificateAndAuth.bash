@@ -64,7 +64,7 @@ workDir=/tmp/_keys
 rm -rf $workDir
 mkdir $workDir
 # clean up temp files on exit
-#trap "rm -rf $workDir" EXIT
+trap "rm -rf $workDir" EXIT
 
 
 cd $workDir
@@ -79,7 +79,7 @@ Creating Certificate Authority
 #files
 readonly fileCaPassfile="ca_pass.txt"
 readonly fileCaKey="ca.key"
-readonly fileCaCert="ca.cert"
+readonly fileCaCert="ca.crt"
 readonly fileSSLConfig="ssl_config.conf"
 
 echo "Creating Config File as $workDir/$fileSSLConfig"
@@ -327,19 +327,6 @@ echo "Verifying Client Cert"
 openssl verify -purpose sslclient -CAfile $fileCaCert $fileClientCert
 echo "done"
 
-echo "Creating P12 file at $workDir/$fileClientP12"
-cp "$fileCaPassfile" "${fileCaPassfile}_2"
-openssl pkcs12 \
-    -export \
-    -clcerts \
-    -passin file:"$fileClientPass" \
-    -passout file:"${fileCaPassfile}_2" \
-    -in "$fileClientCert" \
-    -inkey "$fileClientKey" \
-    -out "$fileClientP12"
-rm -f "${fileCaPassfile}_2"
-base64 $fileClientP12 > $fileClientP12Base64
-rm -f $fileClientP12
 
 echo "
 #################################
@@ -362,4 +349,27 @@ for f in $workDir/*; do
   writeEncrypted "$encrypted" "$varname" "$outputToFile"
 
 done
-#rm -rf $workDir
+rm -rf $workDir
+
+echo "
+
+To use this:
+
+
+Configure Nginx:
+
+    ssl_client_certificate /path/to/ca.cert;
+    ssl_verify_client on;
+
+Use CURL (for example) to access:
+
+  curl --cert client.crt --key client.key --cacert ca.cert https://protected.domain.com
+
+
+To get the contents of the files you can use the dumpGroupSecrets.bash script, eg
+
+bash ./shellscripts/vault/dumpGroupSecrets.bash prod vault_client_foo__client_pass_txt 2>/dev/null
+
+Or of course you can (should) use Ansible to create files etc as required in your various environments
+
+"

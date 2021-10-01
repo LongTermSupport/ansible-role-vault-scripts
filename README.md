@@ -224,23 +224,6 @@ access the HTTP endpoint.
 Client certificates are a nice alternative to basic auth. It is not brute forceable at all, you must have the correct
 client certificate installed to be able to access an endpoint secured with client SSL.
 
-Note that the system will create a P12 file however as this is a binary file format, it is base64 encoded so that it can
-be encrypted.
-
-In order to place the p12 somewhere, you can either use the `shell` module, or if you want to avoid that, you can use
-the `b64decode` filter:
-
-```yaml
-
-- name: Use shell to create p12 file
-  shell: "echo '{{ vault_client_foo__client_p12_b64 }}' | base64 --decode > /path/to/client.p12"
-
-- name: Use copy to create p12 file
-  copy:
-    dest: '/path/to/client.p12'
-    content: '{{ vault_client_foo__client_p12_b64 | b64decode }}'
-```
-
 Usage:
 
 ```bash
@@ -260,6 +243,25 @@ bash shellscripts/vault/createVaultedSshClientCertificateAndAuth.bash \
    prod
 
 ```
+
+o use this:
+
+
+Configure Nginx:
+
+    ssl_client_certificate /path/to/ca.cert;
+    ssl_verify_client on;
+
+Use CURL (for example) to access:
+
+    curl --cert client.crt --key client.key --cacert ca.cert https://protected.domain.com
+
+
+To get the contents of the files you can use the dumpGroupSecrets.bash script, eg
+
+    bash ./shellscripts/vault/dumpGroupSecrets.bash prod vault_client_foo__client_pass_txt 2>/dev/null
+
+Or of course you can (should) use Ansible to create files etc as required in your various environments
 
 ### Copy File Between Environments, Rekeying the Encrypted Variables
 

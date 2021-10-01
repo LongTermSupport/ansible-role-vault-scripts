@@ -244,7 +244,7 @@ bash shellscripts/vault/createVaultedSshClientCertificateAndAuth.bash \
 
 ```
 
-o use this:
+To use this:
 
 
 Configure Nginx:

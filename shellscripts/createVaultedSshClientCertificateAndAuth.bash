@@ -327,6 +327,7 @@ echo "Verifying Client Cert"
 openssl verify -purpose sslclient -CAfile $fileCaCert $fileClientCert
 echo "done"
 
+rm "$fileClientCsr"
 
 echo "
 #################################

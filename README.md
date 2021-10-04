@@ -228,7 +228,7 @@ Usage:
 
 ```bash
 
-bash shellscripts/vault/createVaultedSshClientCertificateAndAuth.bash \
+bash shellscripts/vault/createVaultedSslClientCertificateAndAuth.bash \
   [varname_prefix] \
   [subj] \
   (optional: outputToFile) \
@@ -236,7 +236,7 @@ bash shellscripts/vault/createVaultedSshClientCertificateAndAuth.bash \
   (optional: keepKeys) (optional: clientSub)
 
 # For example:
-bash shellscripts/vault/createVaultedSshClientCertificateAndAuth.bash \
+bash shellscripts/vault/createVaultedSslClientCertificateAndAuth.bash \
   vault_client_foo \
   '/C=GB/ST=England/L=Shipley/O=Foo Ltd/CN=Foo Ltd/emailAddress=info@foo.dev' \
    ./environment/prod/group_vars/all/vault_client_certs_foo.yml \

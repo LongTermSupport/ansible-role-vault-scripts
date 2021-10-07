@@ -73,5 +73,15 @@ encryptedPubKey="$(cat "$workDir/${varname_prefix}.pub" | ansible-vault encrypt_
 
 writeEncrypted "$encryptedPubKey" "${varname_prefix}_pub" "$outputToFile"
 
+echo "
+
+Keys created
+
+Public key:
+
+$(cat "$workDir/${varname_prefix}.pub")
+
+"
+
 # Clean up
 rm -rf $workDir

@@ -115,7 +115,7 @@ function validateOutputToFile(){
       exitFromFunction
     fi
     if [[ -f $_outputToFile ]]; then
-      if [[ "" != "$(grep "^$_varname" $_outputToFile)" ]]; then
+      if [[ "" != "$(grep "^$_varname:" $_outputToFile)" ]]; then
         echo " Error, $_varname already defined in file $_outputToFile"
         exitFromFunction
       fi

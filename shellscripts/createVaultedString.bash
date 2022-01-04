@@ -6,7 +6,7 @@ source ./_top.inc.bash
 
 
 # Usage
-if (($# < 1 || $# > 3)); then
+if (($# < 2 || $# > 4)); then
   echo "
   Usage:
 

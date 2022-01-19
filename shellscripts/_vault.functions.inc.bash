@@ -59,7 +59,7 @@ function ensureFileEndsInNewline(){
 }
 
 function ansibleVersion(){
-  ansible --version | grep --color=never -Po '(?<=^ansible )([0-9.]+)'
+  (ansible --version | grep --color=never -Po '(?<=^ansible )([0-9.]+)' ) || (ansible --version | grep --color=never -Po '(?<=^ansible \[core )([0-9.]+)' )
 }
 
 function ansibleVersionAtLeast () {

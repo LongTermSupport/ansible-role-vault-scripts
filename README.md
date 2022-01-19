@@ -134,6 +134,25 @@ bash shellscripts/vault/createVaultedPassword.bash vault_pass_user_foo
 
 ```
 
+#### Generating a lot of passwords
+
+If you want to generate a bunch of passwords, you might want to do something like this:
+
+```bash
+while read -r item; do 
+  printf "\n- $item"; 
+  bash shellscripts/vault/createVaultedPassword.bash $item ./environment/staging/group_vars/all/vault_wordpress.yml staging; 
+done <<< "vault_wordpress_auth_key
+vault_wordpress_secure_auth_key
+vault_wordpress_logged_in_key
+vault_wordpress_nonce_key
+vault_wordpress_auth_salt
+vault_wordpress_secure_auth_salt
+vault_wordpress_logged_in_salt
+vault_wordpress_nonce_salt"
+```
+
+
 ### Create Vaulted String - eg Encrypt Specific Password or Other Secret
 
 If you need to encrypt a password that is predefined or has specific requirements not met by the auto generated password

@@ -33,7 +33,7 @@ client_foo_ca.pem
 }
 
 # Usage
-if (( $# < 2 ))
+if (( $# < 1 || $# > 5 ))
 then
     usage
     exit 1
@@ -41,7 +41,7 @@ fi
 
 # Set variables
 readonly varname_prefix="$1"
-readonly subj="$2"
+readonly subj="${2:-'/C=GB/ST=England/L=Shipley/O=LTS/CN=LTS/emailAddress=info@ltscommerce.dev'}"
 readonly outputToFile="$(getProjectFilePathCreateIfNotExists "${3:-}")"
 readonly specifiedEnv="${4:-$defaultEnv}"
 readonly clientSubj="${5:-"${subj/CN=/CN=Client }"}"
@@ -93,8 +93,8 @@ cat <<'EOF' > "$fileSSLConfig"
 
 # This definition stops the following lines choking if HOME isn't
 # defined.
-HOME                    = .
-RANDFILE                = $ENV::HOME/.rnd
+#HOME                    = .
+#RANDFILE                = $ENV::HOME/.rnd
 
 # Extra OBJECT IDENTIFIER info:
 #oid_file               = $ENV::HOME/.oid

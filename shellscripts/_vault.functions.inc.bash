@@ -48,6 +48,7 @@ function writeEncrypted(){
   \n" "$(basename $0)" "$(date)" >"$_outputToFile"
   fi
   ensureFileEndsInNewline "$_outputToFile"
+
   echo "$_encrypted" >> "$_outputToFile"
   echo "$_varname created and added to $_outputToFile"
 }

@@ -33,7 +33,7 @@ client_foo_ca.pem
 }
 
 # Usage
-if (( $# < 1 || $# > 5 ))
+if (( $# < 1 || $# > 6 ))
 then
     usage
     exit 1
@@ -41,9 +41,10 @@ fi
 
 # Set variables
 readonly varname_prefix="$1"
-readonly subj="${2:-'/C=GB/ST=England/L=Shipley/O=LTS/CN=LTS/emailAddress=info@ltscommerce.dev'}"
+readonly subj="${2:-/C=GB/ST=England/L=Shipley/O=LTS/CN=LTS/emailAddress=info@ltscommerce.dev}"
 readonly outputToFile="$(getProjectFilePathCreateIfNotExists "${3:-}")"
 readonly specifiedEnv="${4:-$defaultEnv}"
+readonly expiryDays=${5:-3650}
 readonly clientSubj="${5:-"${subj/CN=/CN=Client }"}"
 
 # Source vault top
@@ -64,7 +65,7 @@ workDir=/tmp/_keys
 rm -rf $workDir
 mkdir $workDir
 # clean up temp files on exit
-trap "rm -rf $workDir" EXIT
+#trap "rm -rf $workDir" EXIT
 
 
 cd $workDir
@@ -266,7 +267,7 @@ openssl req \
     -key "$fileCaKey" \
     -new \
     -x509 \
-    -days 7300 \
+    -days $expiryDays \
     -sha256 \
     -extensions v3_ca \
     -out "$fileCaCert" \
@@ -291,7 +292,6 @@ readonly fileClientKey="client.key"
 readonly fileClientCsr="client.csr"
 readonly fileClientCert="client.crt"
 readonly fileClientP12="client.p12"
-readonly fileClientP12Base64="client.p12.b64"
 
 
 echo "Generating a random client key pass and saving it to $workDir/$fileClientPass"
@@ -315,7 +315,7 @@ echo "Creating certificate at $workDir/$fileClientCert"
 
 openssl x509 \
     -req \
-    -days 1095 \
+    -days $expiryDays \
     -passin file:"$fileCaPassfile" \
     -in "$fileClientCsr" \
     -CA "$fileCaCert" \
@@ -342,6 +342,9 @@ for f in $workDir/*; do
     ;;
   esac
   varname="${varname_prefix}__${fileName//\./_}"
+
+  validateOutputToFile "$outputToFile" "$varname"
+
   printf "\n\n# Encrypting %s as %s\n" "$fileName" "$varname"
   encrypted="$(cat "$f" | ansible-vault encrypt_string \
     --vault-id="$specifiedEnv@$vaultSecretsPath" \
@@ -350,7 +353,51 @@ for f in $workDir/*; do
   writeEncrypted "$encrypted" "$varname" "$outputToFile"
 
 done
-rm -rf $workDir
+
+
+echo "
+###################################################
+Creating p12 file and saving to environment folder
+###################################################
+"
+
+echo "Creating P12 file at $workDir/$fileClientP12"
+cp "$fileClientPass" "${fileClientPass}_2"
+openssl pkcs12 \
+    -export \
+    -clcerts \
+    -passin file:"$fileClientPass" \
+    -passout file:"${fileClientPass}_2" \
+    -in "$fileClientCert" \
+    -inkey "$fileClientKey" \
+    -out "$fileClientP12"
+rm -f "${fileClientPass}_2"
+
+mv $workDir/$fileClientP12 /tmp/$fileClientP12
+echo "
+
+p12 file has been saved in /tmp/$fileClientP12
+
+You should manually move this into your ansible project environment folder,
+eg
+
+mv /tmp/$fileClientP12 $projectDir/environment/dev/files/$fileClientP12
+
+"
+
+echo "
+###########################################################
+#Password is: $(cat $fileClientPass)
+###########################################################
+"
+
+echo "
+###########################################################
+# Expiration Date: $(openssl pkcs12 -passin file:$workDir/$fileClientPass -nokeys -in /tmp/$fileClientP12 | openssl x509 -noout -enddate)
+###########################################################
+"
+
+#rm -rf $workDir
 
 echo "
 

@@ -291,7 +291,7 @@ readonly fileClientPass="client_pass.txt"
 readonly fileClientKey="client.key"
 readonly fileClientCsr="client.csr"
 readonly fileClientCert="client.crt"
-readonly fileClientP12="client.p12"
+readonly fileClientPEM="client.pem"
 
 
 echo "Generating a random client key pass and saving it to $workDir/$fileClientPass"
@@ -329,6 +329,9 @@ echo "done"
 
 rm "$fileClientCsr"
 
+echo "Creating PEM File"
+cat $workDir/$fileClientCert $workDir/$fileClientKey > $workDir/$fileClientPEM
+
 echo "
 #################################
 Creating Ansible Vaulted Strings
@@ -355,42 +358,10 @@ for f in $workDir/*; do
 done
 
 
-echo "
-###################################################
-Creating p12 file and PEM file
-###################################################
-"
-
-echo "Creating P12 file at $workDir/$fileClientP12"
-cp "$fileClientPass" "${fileClientPass}_2"
-openssl pkcs12 \
-    -export \
-    -clcerts \
-    -passin file:"$fileClientPass" \
-    -passout file:"${fileClientPass}_2" \
-    -in "$fileClientCert" \
-    -inkey "$fileClientKey" \
-    -out "$fileClientP12"
-rm -f "${fileClientPass}_2"
-
-echo "
-
-p12 file has been saved in /tmp/$fileClientP12
-
-You should manually move this into your ansible project environment folder,
-eg
-
-"
 
 echo "
 ###########################################################
 #Password is: $(cat $fileClientPass)
-###########################################################
-"
-
-echo "
-###########################################################
-# Expiration Date: $(openssl pkcs12 -passin file:$workDir/$fileClientPass -nokeys -in /tmp/$fileClientP12 | openssl x509 -noout -enddate)
 ###########################################################
 "
 
@@ -408,7 +379,7 @@ Configure Nginx:
 
 Use CURL (for example) to access:
 
-  curl --cert client.crt --key client.key --cacert ca.cert https://protected.domain.com
+  curl --cert client.pem:'password here'  https://protected.domain.com
 
 
 To get the contents of the files you can use the dumpGroupSecrets.bash script, eg

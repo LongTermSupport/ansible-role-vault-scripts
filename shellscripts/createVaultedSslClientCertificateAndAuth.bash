@@ -301,7 +301,7 @@ echo "Creating client key at $workDir/$fileClientKey"
 openssl genrsa \
     -des3 \
     -passout file:"$fileClientPass" \
-    -out "$fileClientKey" 1024
+    -out "$fileClientKey" 2048
 
 echo "Creating client CSR at $workDir/$fileClientCsr"
 openssl req \
@@ -357,7 +357,7 @@ done
 
 echo "
 ###################################################
-Creating p12 file and saving to environment folder
+Creating p12 file and PEM file
 ###################################################
 "
 
@@ -373,15 +373,12 @@ openssl pkcs12 \
     -out "$fileClientP12"
 rm -f "${fileClientPass}_2"
 
-mv $workDir/$fileClientP12 /tmp/$fileClientP12
 echo "
 
 p12 file has been saved in /tmp/$fileClientP12
 
 You should manually move this into your ansible project environment folder,
 eg
-
-mv /tmp/$fileClientP12 $projectDir/environment/dev/files/$fileClientP12
 
 "
 

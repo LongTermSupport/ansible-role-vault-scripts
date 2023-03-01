@@ -16,7 +16,7 @@ This script does not currently support creating more than one client SSL certifi
 difficult thing to add in
 
 Usage ./$(basename $0) [varname_prefix] [subj] (optional: outputToFile) (optional: specifiedEnv - defaults to
-$defaultEnv) (optional: keepKeys) (optional: clientSub)
+$defaultEnv) (optional: expiryDays) (optional: clientSub)
 
 Please note, the varname_prefix must start with 'vault_'
 
@@ -45,7 +45,7 @@ readonly subj="${2:-/C=GB/ST=England/L=Shipley/O=LTS/CN=LTS/emailAddress=info@lt
 readonly outputToFile="$(getProjectFilePathCreateIfNotExists "${3:-}")"
 readonly specifiedEnv="${4:-$defaultEnv}"
 readonly expiryDays=${5:-3650}
-readonly clientSubj="${5:-"${subj/CN=/CN=Client }"}"
+readonly clientSubj="${6:-"${subj/CN=/CN=Client }"}"
 
 # Source vault top
 source ./_vault.inc.bash
@@ -292,6 +292,7 @@ readonly fileClientKey="client.key"
 readonly fileClientCsr="client.csr"
 readonly fileClientCert="client.crt"
 readonly fileClientPEM="client.pem"
+readonly fileClientP12="client.p12"
 
 
 echo "Generating a random client key pass and saving it to $workDir/$fileClientPass"
@@ -356,6 +357,46 @@ for f in $workDir/*; do
   writeEncrypted "$encrypted" "$varname" "$outputToFile"
 
 done
+
+echo "
+###################################################
+Creating p12 file
+###################################################
+"
+
+echo "Creating P12 file at $workDir/$fileClientP12"
+cp "$fileClientPass" "${fileClientPass}_2"
+openssl pkcs12 \
+    -export \
+    -clcerts \
+    -passin file:"$fileClientPass" \
+    -passout file:"${fileClientPass}_2" \
+    -in "$fileClientCert" \
+    -inkey "$fileClientKey" \
+    -out "$fileClientP12"
+rm -f "${fileClientPass}_2"
+
+echo "
+p12 file has been saved in /tmp/$fileClientP12
+
+Now encrypting the p12
+
+"
+vaultedp12=${fileClientP12}.vaulted
+cp $fileClientP12 $vaultedp12
+ansible-vault encrypt \
+    --vault-id="$specifiedEnv@$vaultSecretsPath" \
+    $vaultedp12
+
+echo "
+Vaulted p12 file created at $vaultedp12
+
+if you want it in your ansible project, run something like
+
+mkdir -p $projectDir/files/vault/$specifiedEnv/
+cp $workDir/$vaultedp12 $projectDir/files/vault/$specifiedEnv/$vaultedp12
+
+"
 
 
 

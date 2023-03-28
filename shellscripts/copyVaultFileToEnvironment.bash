@@ -72,6 +72,8 @@ for vaultFilePath in "${@:3}"; do
     exit 1
   fi
 
+  mkdir -p "$(dirname $otherVaultFilePath)"
+
   # see https://stackoverflow.com/questions/43467180/how-to-decrypt-string-with-ansible-vault-2-3-0
   ## Process
   readarray params < <(yq r $vaultFilePath --printMode p '*' -j)

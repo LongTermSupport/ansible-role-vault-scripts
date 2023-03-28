@@ -5,24 +5,24 @@ cd "$scriptDir"
 source ./_top.inc.bash
 
 # Usage
-if (( $# < 2 ))
+if (( $# < 3 ))
 then
     echo "
 
     This script will allow you to create a new vault file based on an existing file. It will parse out all the
-    variables and then create new vaulted passwords for each variable
+    variables and then create new vaulted deploy keys for each variable
 
-    Usage ./$(basename $0) [pathToFileToParseVarsFrom] [outputToFile] (optional:  specifiedEnv - defaults to $defaultEnv)
+    Usage ./$(basename $0) [pathToFileToParseVarsFrom] [email] [outputToFile] (optional:  specifiedEnv - defaults to $defaultEnv)
 
 e.g
 
-# Copy a dev env file into the prod env, creating new passwords for all variables
+# Copy a dev env file into the prod env, creating new deploy keys for all variables
 ./$(basename $0) \
   environment/dev/group_vars/all/vault-passwords.yml \
   environment/prod/group_vars/all/vault-passwords.yml \
   prod
 
-# Copy a dev env file to another dev env file with a new name, creating new passwords for all variables
+# Copy a dev env file to another dev env file with a new name, creating new deploy keys for all variables
 ./$(basename $0) \
   environment/dev/group_vars/all/vault-passwords-for-mysite.com.yml \
   environment/dev/group_vars/all/vault-passwords-for-anothersite.com.yml
@@ -33,16 +33,15 @@ fi
 
 # Set variables
 readonly pathToFileToParseVarsFrom="$(getFilePath $1)"
-readonly outputToFile="$(getProjectFilePathCreateIfNotExists "$2")"
-readonly specifiedEnv="${3:-$defaultEnv}"
+readonly email="$2"
+readonly outputToFile="$(getProjectFilePathCreateIfNotExists "$3")"
+readonly specifiedEnv="${4:-$defaultEnv}"
 
 # Source vault top
 source ./_vault.inc.bash
 
 # Assertions
 assertFilesExist $pathToFileToParseVarsFrom
-
-
 
 # Read
 readarray -t varnames <<<"$(grep -Po '^([^: #]+)' "$pathToFileToParseVarsFrom" )"
@@ -53,5 +52,9 @@ for varname in "${varnames[@]}"; do
       echo "$varname already set, skipping, in $outputToFile";
       continue
     fi
-    bash ./createVaultedPassword.bash "$varname" "$outputToFile" "$specifiedEnv"
+    if [[ "$varname" == *_pub ]]; then
+      echo "Skipping pub key"
+      continue
+    fi
+    bash ./createVaultedSshDeployKeyPair.bash "$varname" "$email" "$outputToFile" "$specifiedEnv"
 done

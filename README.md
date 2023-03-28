@@ -429,6 +429,11 @@ bash shellscripts/vault/rekeyVaultFile.bash \
   environment/dev/group_vars/all/vault-*
 ```
 
+If you have one tier of subfolders in your group vars folder, you coudl do something like 
+```bash
+bash shellscripts/vault/rekeyVaultFile.bash dev ./vault-pass-old.secret dev ./vault-pass-new.secret ./environment/dev/group_vars/*/vault*
+```
+
 In the above, we are rekeying values in the `dev` environment, using the current secret file to read and the new secret
 file to write
 
@@ -447,6 +452,10 @@ rm -f vault-*
 for f in new_vault-*; do mv "$f" "${f#new_}"; done
 ```
 
+Another option if you have multiple sub folders in group vars, is something like
+```bash
+cd environment/dev/group_vars/; for d in *; do (cd $d; rm -f vault*; for f in new_*; do mv "$f" "${f#new_}"; done;) done
+```
 Once you are done, first of all you should rename your new secret file so that it is now the same as the secret file
 yuou have configured in `ansible.cfg`.
 

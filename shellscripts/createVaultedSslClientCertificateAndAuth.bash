@@ -42,7 +42,7 @@ fi
 # Set variables
 readonly varname_prefix="$1"
 readonly subj="${2:-/C=GB/ST=England/L=Shipley/O=LTS/CN=LTS/emailAddress=info@ltscommerce.dev}"
-readonly outputToFile="$(getProjectFilePathCreateIfNotExists "${3:-}")"
+outputToFile="$(getProjectFilePathCreateIfNotExists "${3:-}")"
 readonly specifiedEnv="${4:-$defaultEnv}"
 readonly expiryDays=${5:-3650}
 readonly clientSubj="${6:-"${subj/CN=/CN=Client }"}"

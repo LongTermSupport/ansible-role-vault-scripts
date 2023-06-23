@@ -20,10 +20,10 @@ fi
 
 
 readonly currentKeyFileID="$1"
-readonly currentKeyFilePath="$(getFilePath "$2")"
+currentKeyFilePath="$(getFilePath "$2")"
 
 readonly newKeyFileID="$3"
-readonly newKeyFilePath="$(getFilePath "$4")"
+newKeyFilePath="$(getFilePath "$4")"
 
 readonly specifiedEnv="$currentKeyFileID"
 source ./_vault.inc.bash

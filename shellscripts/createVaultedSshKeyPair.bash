@@ -37,7 +37,7 @@ fi
 # Set variables
 readonly varname_prefix="$1"
 readonly email="$2"
-readonly outputToFile="$(getProjectFilePathCreateIfNotExists "${3:-}")"
+outputToFile="$(getProjectFilePathCreateIfNotExists "${3:-}")"
 readonly specifiedEnv="${4:-$defaultEnv}"
 readonly keepKeys="${5:-no}"
 

@@ -23,10 +23,10 @@ fi
 
 # Set variables
 readonly varname="$1"
-readonly outputToFile="$(getProjectFilePathCreateIfNotExists "${2:-}")"
+outputToFile="$(getProjectFilePathCreateIfNotExists "${2:-}")"
 readonly specifiedEnv="${3:-$defaultEnv}"
 
-readonly password='=+'"$(./generatePassword.bash)"
+password='=+'"$(./generatePassword.bash)"
 
 # Source vault top
 source ./_vault.inc.bash

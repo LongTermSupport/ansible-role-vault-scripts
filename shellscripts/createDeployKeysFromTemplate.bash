@@ -32,9 +32,9 @@ e.g
 fi
 
 # Set variables
-readonly pathToFileToParseVarsFrom="$(getFilePath $1)"
+pathToFileToParseVarsFrom="$(getFilePath $1)"
 readonly email="$2"
-readonly outputToFile="$(getProjectFilePathCreateIfNotExists "$3")"
+outputToFile="$(getProjectFilePathCreateIfNotExists "$3")"
 readonly specifiedEnv="${4:-$defaultEnv}"
 
 # Source vault top

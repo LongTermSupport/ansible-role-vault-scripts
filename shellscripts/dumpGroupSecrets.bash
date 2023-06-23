@@ -21,7 +21,7 @@ fi
 readonly specifiedEnv="${1:-$defaultEnv}"
 readonly singleVariable="${2:-}"
 
-readonly roleName="$(basename "$(dirname "$scriptDir")")"
+roleName="$(basename "$(dirname "$scriptDir")")"
 
 cd "$projectDir"
 

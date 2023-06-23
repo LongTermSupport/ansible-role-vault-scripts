@@ -26,7 +26,7 @@ fi
 # Set variables
 readonly varname="$1"
 readonly pathToFileToEncrypt="$2"
-readonly outputToFile="$(getFilePathOrEmptyString "${3:-}")"
+outputToFile="$(getFilePathOrEmptyString "${3:-}")"
 readonly specifiedEnv="${4:-$defaultEnv}"
 
 # Source vault top

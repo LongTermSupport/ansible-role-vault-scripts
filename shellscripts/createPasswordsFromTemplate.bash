@@ -32,8 +32,8 @@ e.g
 fi
 
 # Set variables
-readonly pathToFileToParseVarsFrom="$(getFilePath $1)"
-readonly outputToFile="$(getProjectFilePathCreateIfNotExists "$2")"
+pathToFileToParseVarsFrom="$(getFilePath $1)"
+outputToFile="$(getProjectFilePathCreateIfNotExists "$2")"
 readonly specifiedEnv="${3:-$defaultEnv}"
 
 # Source vault top

@@ -48,7 +48,7 @@ readarray -t varnames <<<"$(grep -Po '^([^: #]+)' "$pathToFileToParseVarsFrom" )
 
 # loop through and add these to the new file
 for varname in "${varnames[@]}"; do
-    if [[  "" != "$outputToFile" && "" != "$(grep "^$varname" "$outputToFile")" ]]; then
+    if [[  "" != "$outputToFile" && "" != "$(grep "^$varname:" "$outputToFile")" ]]; then
       echo "$varname already set, skipping, in $outputToFile";
       continue
     fi

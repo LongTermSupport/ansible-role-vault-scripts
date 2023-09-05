@@ -29,7 +29,7 @@ fi
 
 readonly varname="$1"
 readonly string="$2"
-outputToFile="$(getFilePathOrEmptyString "${3:-}")"
+outputToFile="$(getProjectFilePathCreateIfNotExists "${3:-}")"
 readonly specifiedEnv="${4:-$defaultEnv}"
 
 # Source vault top

@@ -21,7 +21,7 @@ Please note, the varname_prefix must start with 'vault_'
 
 e.g
 
-./$(basename $0) dev vault_github_deploy
+./$(basename $0) vault_github_deploy
 
 To generate a private and public key with variables
 

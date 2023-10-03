@@ -31,9 +31,10 @@ then
 fi
 
 readonly varname="$1"
-readonly outputToFilePlaceholder="${2:-}"
+outputToFilePlaceholder="${2:-}"
 if [[ "$outputToFilePlaceholder" != "" ]]; then
-  assertContainsPlaceholder "$outputToFilePlaceholder"
+  outputToFilePlaceholder="$(assertContainsPlaceholder "$outputToFilePlaceholder")"
+  echo "outputToFilePlaceholder: $outputToFilePlaceholder"
 fi
 
 for envName in $allEnvNames; do

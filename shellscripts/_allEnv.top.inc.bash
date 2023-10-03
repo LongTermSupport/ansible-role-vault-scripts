@@ -19,9 +19,19 @@ placeholderEnvName='_env_'
 
 function assertContainsPlaceholder(){
   local _toCheck="$1"
+  for envName in $allEnvNames; do
+    local envPath="environment/$envName"
+    if [[ "$_toCheck" == *"$envPath"* ]]; then
+      replace="environment/$placeholderEnvName"
+      echo "Found $envPath in $_toCheck, replacing with $replace" >&2
+      _toCheck="${_toCheck/$envPath/$replace}"
+      break;
+    fi
+  done
   if [[ "$_toCheck" != *"$placeholderEnvName"* ]]; then
-    echo "ERROR: Failed finding placeholderEnvName $placeholderEnvName in $_toCheck"
-    echo "you must use $placeholderEnvName for the environment name when running this script"
+    echo "ERROR: Failed finding placeholderEnvName $placeholderEnvName in $_toCheck"  >&2
+    echo "you must use $placeholderEnvName for the environment name when running this script"  >&2
     return 1
   fi
+  echo "$_toCheck"
 }

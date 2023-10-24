@@ -32,7 +32,7 @@ github_deploy_pub
 }
 
 # Usage
-if (( $# < 2 ))
+if (( $# != 3  ))
 then
     usage
     exit 1
@@ -40,9 +40,10 @@ fi
 
 readonly varnamePrefix="$1"
 readonly email="$2"
-readonly outputToFilePlaceholder="${3:-}"
+outputToFilePlaceholder="$3"
 if [[ "$outputToFilePlaceholder" != "" ]]; then
-  assertContainsPlaceholder "$outputToFilePlaceholder"
+  outputToFilePlaceholder="$(assertContainsPlaceholder "$outputToFilePlaceholder")"
+  echo "outputToFilePlaceholder: $outputToFilePlaceholder"
 fi
 
 for envName in $allEnvNames; do

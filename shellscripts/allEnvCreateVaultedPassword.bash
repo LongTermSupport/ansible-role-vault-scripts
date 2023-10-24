@@ -24,14 +24,14 @@ e.g
 }
 
 # Usage
-if (( $# < 1 ))
+if (( $# < 2 ))
 then
     usage
     exit 1
 fi
 
 readonly varname="$1"
-outputToFilePlaceholder="${2:-}"
+outputToFilePlaceholder="$2"
 if [[ "$outputToFilePlaceholder" != "" ]]; then
   outputToFilePlaceholder="$(assertContainsPlaceholder "$outputToFilePlaceholder")"
   echo "outputToFilePlaceholder: $outputToFilePlaceholder"

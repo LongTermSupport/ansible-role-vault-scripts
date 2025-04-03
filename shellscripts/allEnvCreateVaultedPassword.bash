@@ -6,20 +6,21 @@ source ./_allEnv.top.inc.bash
 
 function usage(){
   echo "
-
 USAGE:
 
-This script will generate a random password and encrypt it, then add it to the file you specify for each environment.
+This script will generate a random password and encrypt it, then add it to a file in each environment.
 
+Usage: ./$(basename $0) [varname] [outputToFile with _env_ as env placeholder]
 
-Usage ./$(basename $0) [varname] (optional: outputToFile with _env_ as env placeholder)
+Please note:
+- The varname must start with 'vault_'
+- The outputToFile parameter must contain '_env_' as a placeholder for the environment name
+- This script will replace '_env_' with each available environment name and call createVaultedPassword.bash for each one
 
-Please note, the varname_prefix must start with 'vault_'
+Examples:
+./$(basename $0) vault_db_password environment/_env_/group_vars/containers/vault_passwords.yml
 
-e.g
-
-./$(basename $0) vault_my_password
-
+This will create the password in every environment, replacing '_env_' with 'dev', 'prod', etc.
     "
 }
 

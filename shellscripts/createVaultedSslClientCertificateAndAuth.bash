@@ -6,29 +6,31 @@ source ./_top.inc.bash
 
 function usage(){
   echo "
-
 USAGE:
 
 This script will generate a random password and then use this to create a certificate authority (CA) which is then
-used to create a client certificate which can be used with nginx etc for client SSL based authentication
+used to create a client certificate which can be used with nginx etc for client SSL based authentication.
 
 This script does not currently support creating more than one client SSL certificate, though it would not be a
-difficult thing to add in
+difficult thing to add in.
 
-Usage ./$(basename $0) [varname_prefix] [subj] (optional: outputToFile) (optional: specifiedEnv - defaults to
-$defaultEnv) (optional: expiryDays) (optional: clientSub)
+Usage: ./$(basename $0) [varname_prefix] [subj] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv) (optional: expiryDays) (optional: clientSubj)
 
-Please note, the varname_prefix must start with 'vault_'
+Please note:
+- The varname_prefix must start with 'vault_'
+- If outputToFile contains an environment path (e.g., environment/prod/...), that environment will be 
+  used automatically and the specifiedEnv parameter can be omitted
+- If you specify both an environment in the path and the specifiedEnv parameter, they must match
+- expiryDays defaults to 3650 (10 years)
+- clientSubj defaults to the same as subj but with 'Client ' prefixed to the CN
 
-e.g
+Examples:
+./$(basename $0) vault_client_foo '/C=GB/ST=England/L=Shipley/O=Foo Ltd/CN=Foo Ltd/emailAddress=info@example.com'
+./$(basename $0) vault_client_foo '/C=GB/ST=England/L=Shipley/O=Foo Ltd/CN=Foo Ltd/emailAddress=info@example.com' environment/dev/group_vars/db/vault_client_certs.yml
+# Environment 'prod' is automatically detected from the path:
+./$(basename $0) vault_client_foo '/C=GB/ST=England/L=Shipley/O=Foo Ltd/CN=Foo Ltd/emailAddress=info@example.com' environment/prod/group_vars/db/vault_client_certs.yml
 
-./$(basename $0) vault_client_foo '/C=GB/ST=England/L=Shipley/O=Foo Ltd/CN=Foo Ltd/emailAddress=info@ltscommerce.dev'
-
-To generate the following:
-
-client_foo_ca.pass.key
-client_foo_ca.pem
-
+This will generate multiple encrypted files for each component of the client certificates.
     "
 }
 
@@ -43,9 +45,12 @@ fi
 readonly varname_prefix="$1"
 readonly subj="${2:-/C=GB/ST=England/L=Shipley/O=LTS/CN=LTS/emailAddress=info@ltscommerce.dev}"
 outputToFile="$(getProjectFilePathCreateIfNotExists "${3:-}")"
-readonly specifiedEnv="${4:-$defaultEnv}"
+readonly userSpecifiedEnv="${4:-$defaultEnv}"
 readonly expiryDays=${5:-3650}
 readonly clientSubj="${6:-"${subj/CN=/CN=Client }"}"
+
+# Set environment variable for _vault.inc.bash to use
+readonly specifiedEnv="$userSpecifiedEnv"
 
 # Source vault top
 source ./_vault.inc.bash
@@ -351,7 +356,7 @@ for f in $workDir/*; do
 
   printf "\n\n# Encrypting %s as %s\n" "$fileName" "$varname"
   encrypted="$(cat "$f" | ansible-vault encrypt_string \
-    --vault-id="$specifiedEnv@$vaultSecretsPath" \
+    --vault-id="$finalSpecifiedEnv@$vaultSecretsPath" \
     --stdin-name "$varname")"
 
   writeEncrypted "$encrypted" "$varname" "$outputToFile"

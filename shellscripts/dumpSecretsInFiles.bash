@@ -57,7 +57,7 @@ Dumping Vault Secrets in $vaultFilePath
     vEnc="$(echo "$vEnc" | sed 's#\$ANSIBLE#ANSIBLE#g')"
     eval "vEncVal=$vEnc"
     valuesDecrypted+=("$(printf "%s$vEncVal" '$' \
-      | ansible-vault decrypt  --vault-id="$specifiedEnv@$vaultSecretsPath" - \
+      | ansible-vault decrypt  --vault-id="$finalSpecifiedEnv@$vaultSecretsPath" - \
       | grep -v 'Decryption successful' )")
     paramsDecrypted+=("${params[$vEncId]}")
   done

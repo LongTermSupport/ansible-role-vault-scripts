@@ -6,24 +6,32 @@ source ./_top.inc.bash
 
 function usage(){
   echo "
-
 USAGE:
 
-This script will generate a random password and then an SSH key pair protected by that password, then optionally add it to the file you specify. Finally it can either leave the generated key files in place or otherwise will delete them
+This script will generate a random password and then an SSH key pair protected by that password, then optionally add it to the file you specify. 
+It can either leave the generated key files in place or delete them.
 
-Usage ./$(basename $0) [varname_prefix] [email] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv) (optional: keepKeys)
+Usage: ./$(basename $0) [varname_prefix] [email] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv) (optional: keepKeys)
 
-Please note, the varname_prefix must start with 'vault_'
+Please note:
+- The varname_prefix must start with 'vault_'
+- If outputToFile contains an environment path (e.g., environment/prod/...), that environment will be 
+  used automatically and the specifiedEnv parameter can be omitted
+- If you specify both an environment in the path and the specifiedEnv parameter, they must match
+- keepKeys can be 'yes' or 'no' (default is 'no')
 
-e.g
+Examples:
+./$(basename $0) vault_github user@example.com
+./$(basename $0) vault_github user@example.com environment/dev/group_vars/containers/vault_github_deploy_keys.yml
+# Environment 'prod' is automatically detected from the path:
+./$(basename $0) vault_github user@example.com environment/prod/group_vars/containers/vault_github_deploy_keys.yml 
+# Keep the keys after generation:
+./$(basename $0) vault_github user@example.com environment/dev/group_vars/containers/vault_github_deploy_keys.yml dev yes
 
-./$(basename $0) dev vault_github
-
-To generate a private and public key with variables
-
-github
-github_pub
-
+This will generate a private and public key with variables:
+vault_github
+vault_github_pub
+vault_github_passphrase
     "
 }
 
@@ -38,8 +46,11 @@ fi
 readonly varname_prefix="$1"
 readonly email="$2"
 outputToFile="$(getProjectFilePathCreateIfNotExists "${3:-}")"
-readonly specifiedEnv="${4:-$defaultEnv}"
+readonly userSpecifiedEnv="${4:-$defaultEnv}"
 readonly keepKeys="${5:-no}"
+
+# Set environment variable for _vault.inc.bash to use
+readonly specifiedEnv="$userSpecifiedEnv"
 
 # Source vault top
 source ./_vault.inc.bash
@@ -66,7 +77,7 @@ readonly password="$(./generatePassword.bash)"
 #Write out encrypted Password
 readonly varname="${varname_prefix}_passphrase"
 encrypted="$(echo -n "$password" | ansible-vault encrypt_string \
-  --vault-id="$specifiedEnv@$vaultSecretsPath" \
+  --vault-id="$finalSpecifiedEnv@$vaultSecretsPath" \
   --stdin-name $varname)"
 writeEncrypted "$encrypted" "$varname" "$outputToFile"
 
@@ -78,13 +89,13 @@ ssh-keygen -t ed25519 -C "$email" -N "$password" -f $workDir/${varname_prefix}
 
 # Write Variables
 encryptedPrivKey="$(cat "$workDir/${varname_prefix}" | ansible-vault encrypt_string \
---vault-id="$specifiedEnv@$vaultSecretsPath" \
+--vault-id="$finalSpecifiedEnv@$vaultSecretsPath" \
 --stdin-name "${varname_prefix}")"
 
 writeEncrypted "$encryptedPrivKey" "${varname_prefix}" "$outputToFile"
 
 encryptedPubKey="$(cat "$workDir/${varname_prefix}.pub" | ansible-vault encrypt_string \
---vault-id="$specifiedEnv@$vaultSecretsPath" \
+--vault-id="$finalSpecifiedEnv@$vaultSecretsPath" \
 --stdin-name "${varname_prefix}_pub")"
 
 writeEncrypted "$encryptedPubKey" "${varname_prefix}_pub" "$outputToFile"

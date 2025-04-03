@@ -4,30 +4,39 @@ cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
 
-# Usage
-if (( $# < 2 ))
-then
+function usage() {
     echo "
+USAGE:
 
-    This script will allow you to create a vaulted string that is the contents of the specified file, then optionally add it to the file you specify
+This script will create a vaulted string containing the contents of a specified file, then optionally add it to an Ansible vault file
 
-    Usage ./$(basename $0) [varname] [path to file] (optional: output to file, defaults to dev/null) (optional: specifiedEnv - defaults to $defaultEnv)
-
-e.g
+Usage: ./$(basename $0) [varname] [path_to_secret_file] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv)
 
 Please note, the varname must be prefixed with 'vault_'
 
-./$(basename $0) ~/ssh/id_rsa dev vault_privkey
+Examples:
+./$(basename $0) vault_ssh_key ~/.ssh/id_rsa 
+./$(basename $0) vault_ssl_cert /etc/ssl/private/example.com.crt environment/dev/group_vars/keymaster/vault_certificates.yml
+./$(basename $0) vault_api_token /path/to/token.txt environment/prod/group_vars/api/vault_tokens.yml prod
 
-    "
+"
     exit 1
+}
+
+# Usage
+if (( $# < 2 ))
+then
+    usage
 fi
 
 # Set variables
 readonly varname="$1"
 readonly pathToFileToEncrypt="$2"
 outputToFile="$(getFilePathOrEmptyString "${3:-}")"
-readonly specifiedEnv="${4:-$defaultEnv}"
+readonly userSpecifiedEnv="${4:-$defaultEnv}"
+
+# Set environment variable for _vault.inc.bash to use
+readonly specifiedEnv="$userSpecifiedEnv"
 
 # Source vault top
 source ./_vault.inc.bash
@@ -41,7 +50,7 @@ validateOutputToFile "$outputToFile" "$varname"
 
 # Create vault string
 encrypted="$(cat "$pathToFileToEncrypt" | ansible-vault encrypt_string \
-  --vault-id="$specifiedEnv@$vaultSecretsPath" \
+  --vault-id="$finalSpecifiedEnv@$vaultSecretsPath" \
   --stdin-name "$prefixed_varname")"
 
 writeEncrypted "$encrypted" "$prefixed_varname" "$outputToFile"

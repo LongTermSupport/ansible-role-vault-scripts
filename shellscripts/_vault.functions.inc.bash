@@ -180,3 +180,62 @@ function assertFileInEnv(){
   echo "Filepath $filePath does not seem to be in environment/$env"
   exitFromFunction
 }
+
+function detectEnvironmentFromPath() {
+  local filePath="$1"
+  local inputEnv="$2"
+  local detectedEnv=""
+  
+  # If no file path, just return the specified environment
+  if [[ -z "$filePath" ]]; then
+    echo "$inputEnv"
+    return 0
+  fi
+  
+  # Look for environment pattern in path and validate it exists
+  if [[ "$filePath" == *"/environment/"* ]]; then
+    # Extract potential environment from the path
+    local pathEnv=$(echo "$filePath" | grep -oP '(?<=/environment/)[^/]+')
+    
+    # Check if the found environment is in our valid environments list
+    local validEnv=false
+    for env in "${environmentArray[@]}"; do
+      if [[ "$pathEnv" == "$env" ]]; then
+        detectedEnv="$env"
+        validEnv=true
+        break
+      fi
+    done
+    
+    # If we found something in the path that looks like an environment but isn't valid
+    if [[ "$validEnv" == "false" ]]; then
+      error "Invalid environment '$pathEnv' detected in file path. Valid environments are: ${environmentArray[*]}"
+      exitFromFunction
+    fi
+  fi
+  
+  # If no environment detected, return input environment
+  if [[ -z "$detectedEnv" ]]; then
+    echo "$inputEnv"
+    return 0
+  fi
+  
+  # If environment detected and no environment specified, use detected
+  if [[ "$inputEnv" == "$defaultEnv" ]]; then
+    # Print message to stderr so it doesn't get captured as output
+    echo "Detected environment '$detectedEnv' from file path. Using this environment instead of default." >&2
+    echo "$detectedEnv"
+    return 0
+  fi
+  
+  # If environment detected and different from specified, error
+  if [[ "$detectedEnv" != "$inputEnv" ]]; then
+    error "Environment conflict: '$detectedEnv' detected in file path but '$inputEnv' specified as parameter."
+    error "Either remove the environment parameter or ensure it matches the environment in the file path."
+    exitFromFunction
+  fi
+  
+  # Environment matches specified
+  echo "$inputEnv"
+  return 0
+}

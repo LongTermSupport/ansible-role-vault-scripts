@@ -4,22 +4,33 @@ cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
 
-#Usage
-if (( $# < 3 )); then
+function usage() {
   echo "
+USAGE:
 
-  This script will allow you to copy (and rekey) vault encrypted files between environments.
+This script copies vault encrypted files between environments, re-encrypting them with the destination environment's vault password.
 
-  Note - #THIS IS A BAD IDEA#
-  Unless it is truly necessary. You should probably be using
-  ./createPasswordsFromTemplate.bash
+Note - #THIS IS A BAD IDEA# in most cases!
+Unless it is truly necessary, you should probably be using ./createPasswordsFromTemplate.bash instead.
+Copying encrypted secrets between environments can reduce security by duplicating sensitive information.
 
-  Usage
+Usage: ./$(basename $0) [sourceEnv] [destEnv] [vaultFilePaths ...]
 
-  $(basename $0) [currentEnv] [newEnv] [vaultFilePaths ...]
+Parameters:
+- sourceEnv: The source environment (e.g., 'dev', 'prod')
+- destEnv: The destination environment (e.g., 'dev', 'prod')
+- vaultFilePaths: One or more paths to vault files to copy
 
+Examples:
+./$(basename $0) dev prod environment/dev/group_vars/containers/vault_ssl_certs.yml
+./$(basename $0) prod localdev environment/prod/group_vars/containers/vault_cloudflare.yml environment/prod/group_vars/keymaster/vault_cloudflare.yml
   "
   exit 1
+}
+
+#Usage
+if (( $# < 3 )); then
+  usage
 fi
 
 #set -x

@@ -4,38 +4,45 @@ cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
 
+function usage() {
+    echo "
+USAGE:
+
+This script creates a new vault file based on an existing file. It parses all the
+variables from the source file and creates new SSH deploy keys for each variable.
+
+Usage: ./$(basename $0) [pathToFileToParseVarsFrom] [email] [outputToFile] (optional: specifiedEnv - defaults to $defaultEnv)
+
+Please note:
+- This script scans an existing vault file and creates new keys for each variable
+- If outputToFile contains an environment path (e.g., environment/prod/...), that environment will be 
+  used automatically and the specifiedEnv parameter can be omitted
+- If you specify both an environment in the path and the specifiedEnv parameter, they must match
+
+Examples:
+# Create new keys from a template file:
+./$(basename $0) environment/dev/group_vars/all/vault_github_deploy_keys.yml user@example.com environment/prod/group_vars/all/vault_github_deploy_keys.yml
+
+# Create keys for another site using the same template:
+./$(basename $0) environment/dev/group_vars/all/vault_github_deploy_keys.yml user@example.com environment/dev/group_vars/all/vault_github_deploy_keys_site2.yml
+    "
+    exit 1
+}
+
 # Usage
 if (( $# < 3 ))
 then
-    echo "
-
-    This script will allow you to create a new vault file based on an existing file. It will parse out all the
-    variables and then create new vaulted deploy keys for each variable
-
-    Usage ./$(basename $0) [pathToFileToParseVarsFrom] [email] [outputToFile] (optional:  specifiedEnv - defaults to $defaultEnv)
-
-e.g
-
-# Copy a dev env file into the prod env, creating new deploy keys for all variables
-./$(basename $0) \
-  environment/dev/group_vars/all/vault-passwords.yml \
-  environment/prod/group_vars/all/vault-passwords.yml \
-  prod
-
-# Copy a dev env file to another dev env file with a new name, creating new deploy keys for all variables
-./$(basename $0) \
-  environment/dev/group_vars/all/vault-passwords-for-mysite.com.yml \
-  environment/dev/group_vars/all/vault-passwords-for-anothersite.com.yml
-
-    "
-    exit 1
+    usage
 fi
 
 # Set variables
 pathToFileToParseVarsFrom="$(getFilePath $1)"
 readonly email="$2"
 outputToFile="$(getProjectFilePathCreateIfNotExists "$3")"
-readonly specifiedEnv="${4:-$defaultEnv}"
+readonly userSpecifiedEnv="${4:-$defaultEnv}"
+
+# Set environment variable for _vault.inc.bash to use
+readonly specifiedEnv="$userSpecifiedEnv"
 
 # Source vault top
 source ./_vault.inc.bash

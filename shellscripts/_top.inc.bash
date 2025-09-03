@@ -53,6 +53,12 @@ standardIFS="$IFS"
 IFS=$'\n\t'
 
 ######################################
+# Source project-specific settings if available
+if [[ -f "$scriptDir/vaultScriptsSettings.inc.bash" ]]; then
+  source "$scriptDir/vaultScriptsSettings.inc.bash"
+fi
+
+######################################
 # Error Handling
 backTraceExit() {
   local err=$?
@@ -169,6 +175,11 @@ if [[ ! -f $projectDir/ansible.cfg ]]; then
 
   "
   exit 1
+fi
+
+# Source project-specific vault scripts settings if available
+if [[ -f "$scriptDir/vaultScriptsSettings.inc.bash" ]]; then
+  source "$scriptDir/vaultScriptsSettings.inc.bash"
 fi
 
 readonly defaultEnv="${vaultScriptsDefaultEnv:-dev}"

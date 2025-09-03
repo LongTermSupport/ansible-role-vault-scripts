@@ -13,8 +13,15 @@ fi
 
 source $scriptDir/_top.inc.bash
 
-allEnvPaths="$(find $projectDir -maxdepth 2 -wholename '*/environment/*' -type d)"
-allEnvNames="$(echo "$allEnvPaths" | sed 's/.*\/\(.*\)/\1/')"
+# Use configured environments if available, otherwise discover all
+if [[ -n "${VAULT_SCRIPTS_ENVIRONMENTS:-}" ]]; then
+  allEnvNames="$VAULT_SCRIPTS_ENVIRONMENTS"
+  echo "Using configured environments: $allEnvNames" >&2
+else
+  allEnvPaths="$(find $projectDir -maxdepth 2 -wholename '*/environment/*' -type d)"
+  allEnvNames="$(echo "$allEnvPaths" | sed 's/.*\/\(.*\)/\1/')"
+  echo "Discovered environments: $allEnvNames" >&2
+fi
 placeholderEnvName='_env_'
 
 function assertContainsPlaceholder(){

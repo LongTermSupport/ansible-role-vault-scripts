@@ -61,6 +61,8 @@ if [[ "$outputToFilePlaceholder" != "" ]]; then
   echo "outputToFilePlaceholder: $outputToFilePlaceholder"
 fi
 
+# Temporarily restore standard IFS for proper word splitting in the loop
+IFS="$standardIFS"
 for envName in $allEnvNames; do
   if [[ "$outputToFilePlaceholder" != "" ]]; then
     outputToFile="${outputToFilePlaceholder/$placeholderEnvName/$envName}"
@@ -71,3 +73,5 @@ for envName in $allEnvNames; do
     ./createVaultedString.bash "$varname" "$string" "$outputToFile" "$envName"
   fi
 done
+# Restore vault scripts IFS
+IFS=$'\n\t'

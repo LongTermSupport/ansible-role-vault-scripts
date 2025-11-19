@@ -86,24 +86,30 @@ for vaultFilePath in "${@:3}"; do
   mkdir -p "$(dirname $otherVaultFilePath)"
 
   # see https://stackoverflow.com/questions/43467180/how-to-decrypt-string-with-ansible-vault-2-3-0
-  ## Process
-  readarray params < <(yq r $vaultFilePath --printMode p '*' -j)
-  readarray valuesEncrypted < <(yq r $vaultFilePath --printMode v '*' -j)
+  ## Process - using yq v4 syntax
+  readarray params < <(yq eval 'keys | .[]' "$vaultFilePath")
   declare -a valuesDecrypted
   valuesDecrypted=()
 
-  # loop over encrypted and build array of decrypted
-  for vEnc in "${valuesEncrypted[@]}"; do
-    if [[ $vEnc != *ANSIBLE_VAULT* ]];
-    then
+  # loop over params and decrypt each value
+  for param in "${params[@]}"; do
+    # Trim whitespace from param
+    param="${param%%[[:space:]]}"
+    param="${param##[[:space:]]}"
+
+    # Get the raw value for this param (yq v4 outputs vault strings correctly)
+    vEnc=$(yq eval ".$param" "$vaultFilePath")
+
+    if [[ $vEnc != *ANSIBLE_VAULT* ]]; then
       valuesDecrypted+=("$vEnc")
       continue
     fi
-    vEnc="$(echo "$vEnc" | sed 's#\$ANSIBLE#ANSIBLE#g')"
-    eval "vEncVal=$vEnc"
-    valuesDecrypted+=("$(printf "%s$vEncVal" '$' \
-      | ansible-vault decrypt  --vault-id="$currentEnv@$currentSecretPath" - \
-      | grep -v 'Decryption successful' )")
+
+    # Decrypt the vault string - pass it directly to ansible-vault
+    decrypted=$(echo "$vEnc" \
+      | ansible-vault decrypt --vault-id="$currentEnv@$currentSecretPath" - \
+      | grep -v 'Decryption successful')
+    valuesDecrypted+=("$decrypted")
   done
 
   # Debug output

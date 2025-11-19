@@ -156,16 +156,31 @@ function assertFilesDoNotExist(){
 }
 
 function assertYqInstalled(){
-    if [[ ! -f /usr/bin/yq ]]; then
+    if ! command -v yq &>/dev/null; then
       echo '
 
-      ERROR - this script requires yq to be installed
+      ERROR - this script requires yq v4+ to be installed
 
-      You might want to install with a command like:
+      Install with:
 
-      sudo bash -c "wget https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq"
+      sudo bash -c "wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq"
 
       '
+      exit 1
+    fi
+
+    # Check for yq v4+ (v3 uses "yq version", v4 uses "yq --version")
+    local yqVersion
+    yqVersion=$(yq --version 2>&1 | grep -oP 'v?\K[0-9]+' | head -1)
+    if [[ "$yqVersion" -lt 4 ]]; then
+      echo "
+      ERROR - this script requires yq v4+, but you have v$yqVersion
+
+      Upgrade with:
+
+      sudo bash -c \"wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq\"
+
+      "
       exit 1
     fi
 }

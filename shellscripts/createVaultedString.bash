@@ -18,6 +18,7 @@ Usage: ./$(basename $0) [options] [varname] [string] (optional: outputToFile) (o
 
 Options:
   --preserve-whitespace  Preserve leading and trailing whitespace in the string (default is to trim)
+  --overwrite            Overwrite existing variable if it already exists in the output file
 
 Please note:
 - The varname must be prefixed with 'vault_'
@@ -32,6 +33,8 @@ Examples:
 ./$(basename $0) --preserve-whitespace vault_multiline_text '  Text with whitespace  '
 # Environment 'prod' is automatically detected from the path:
 ./$(basename $0) vault_cloudflare_token 'cf-token-123' environment/prod/group_vars/cloudflare/vault_tokens.yml
+# Update existing variable (fails if variable doesn't exist):
+./$(basename $0) --overwrite vault_github_token 'NewTokenValue' environment/dev/group_vars/errorMonitor/vault_error_monitor.yml
 
 "
   exit 1
@@ -39,12 +42,17 @@ Examples:
 
 # Parse options
 preserveWhitespace=false
+overwrite=false
 params=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --preserve-whitespace)
       preserveWhitespace=true
+      shift
+      ;;
+    --overwrite)
+      overwrite=true
       shift
       ;;
     *)
@@ -85,7 +93,37 @@ source ./_vault.inc.bash
 assertValidEnv "$specifiedEnv"
 assertPrefixedWithVault "$varname"
 readonly prefixed_varname="$varname"
-validateOutputToFile "$outputToFile" "$varname"
+
+# Handle --overwrite flag
+if [[ "$overwrite" == "true" ]]; then
+  # FAIL FAST: Variable must exist when using --overwrite
+  if [[ -f "$outputToFile" ]]; then
+    if [[ "" == "$(grep "^$varname:" "$outputToFile")" ]]; then
+      echo ""
+      echo "ERROR: --overwrite specified but variable '$varname' does NOT exist in file:"
+      echo "  $outputToFile"
+      echo ""
+      echo "The --overwrite flag requires the variable to already exist."
+      echo "Remove --overwrite to create a new variable, or check for typos in the variable name."
+      echo ""
+      exit 1
+    fi
+
+    echo "Removing existing '$varname' from file (--overwrite mode)"
+    # Remove the old variable (handles multi-line vault format)
+    # Match the varname line and all subsequent indented lines until next non-indented line
+    sed -i "/^$varname:/,/^[^ ]/{/^$varname:/d; /^[^ ]/!d;}" "$outputToFile"
+  else
+    echo ""
+    echo "ERROR: --overwrite specified but output file does not exist:"
+    echo "  $outputToFile"
+    echo ""
+    exit 1
+  fi
+else
+  # Normal behavior: fail if variable already exists
+  validateOutputToFile "$outputToFile" "$varname"
+fi
 
 # Create vault string
 encrypted="$(echo -n "$string" | ansible-vault encrypt_string \

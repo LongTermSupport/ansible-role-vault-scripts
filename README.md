@@ -1,464 +1,269 @@
-# Vault Scripts
+# Ansible Role: Vault Scripts
 
-This role is primarly a container for some utility shell scripts to assist with working Ansible vault, specifically
-using encrypt-string
+Shell scripts for managing secrets with **Ansible Vault encrypted strings** (`ansible-vault encrypt_string` / `!vault |`). Generate vaulted passwords, SSH key pairs, SSL client certificates, rekey encrypted strings, and dump secrets — all from simple Bash commands.
 
-These have been packaged as a role to assist with integrating these with your ansible projects
+Packaged as an Ansible role for easy version-pinning via `requirements.yml`.
 
-To install this into your project, first you need to add the following to your `requirements.yml` file:
+## Why Vault Strings?
+
+Ansible Vault offers two encryption approaches: encrypting entire files, or encrypting individual variable values (vault strings). Vault strings are the better workflow for most teams because:
+
+- **Variable names stay in plaintext** — you can `grep` for `db_password` across your entire codebase
+- **Values are never decrypted during development** — no risky decrypt/edit/re-encrypt cycle
+- **Git diffs show which variable changed** — not a meaningless blob of ciphertext
+- **AI coding assistants can reason about your infrastructure** — they see the structure without seeing secrets
+- **Code reviews actually work** — reviewers see the key name that changed, even in GitHub/GitLab PRs
+
+The common objection is that `ansible-vault rekey` does not work with encrypted strings. This role solves that with `rekeyVaultFile.bash`.
+
+For a detailed comparison, see [Stop Encrypting Entire Files with Ansible Vault](https://www.yoursite.com/articles/ansible-vault-strings-vs-file-encryption).
+
+## Installation
+
+Add to your `requirements.yml`:
 
 ```yaml
-# Vault Script
 - src: https://github.com/LongTermSupport/ansible-role-vault-scripts
   scm: git
   name: lts.vault-scripts
   version: master
 ```
 
-Then to install your roles, the following command is suggested:
+Install with Ansible Galaxy:
 
 ```bash
 ansible-galaxy install \
-        --force \
-        --keep-scm-meta \
-        --role-file={{ requirements_path }} \
-        --roles-path={{ roles_path }}
+    --force \
+    --keep-scm-meta \
+    --role-file=requirements.yml \
+    --roles-path=roles
 ```
 
-You should set up a symlink from your project shellscripts folder to the shellscripts in the role:
+Symlink the scripts into your project:
 
 ```bash
-cd {{ project_root }}
-mkdir shellscripts
-cd shellscripts
-ln -s ../{{ roles_path }}/lts.vault-scripts/shellscripts/ vault
+mkdir -p shellscripts
+ln -s ../roles/lts.vault-scripts/shellscripts/ shellscripts/vault
 ```
 
 ## Prerequisites
 
-You must have the following set up for these to work:
+- `ansible-vault` (comes with Ansible)
+- `yq` ([mikefarah/yq](https://github.com/mikefarah/yq)) for YAML parsing
+- `ansible.cfg` in your project root
+- An environment directory structure, e.g. `environment/dev/`, `environment/prod/`
+- `*.secret` in your `.gitignore` (vault password files must never be committed)
 
-* scripts installed to `shellscripts/vault` or otherwise a subdirectory 2 deep from your project root
-* `ansible.cfg` file in the root of your project
-* `environment/dev` folder containing your default dev environment (or whichever env name you choose to use)
-* You have the line `*.secret` in your project `.gitignore` file
-* You need to have `yq` installed
-    * You can install this with something like:
-
-```
-sudo bash -c "wget https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq"  
-```
-
-## Limitations
-
-* vaulted variables must be prefixed with `vault_`
-* vaulted variables must be top level variables, not part of any nested structure.
-
-It is suggested that whilst these are limitations, it is not necessarily a bad style to have to conform to. If you need
-to encrypt things in a nested structure, you will need to define them as a top level vaulted variable and then use that
-vaulted variable in your nested structure.
-
-## Instructions for Scripts
-
-For each script, execute without arguments to get usage instructions
-
-### Default and Specified Environment
-
-For all actions, an environment name is required. This will default to `dev`.
-
-You can override this on a per script call basis by passing the env name for the `specifiedEnv` parameter, for example:
+## Quick Start
 
 ```bash
-bash shellscripts/vault/generateVaultSecret.bash prod
+# 1. Generate a vault password file
+bash shellscripts/vault/generateVaultSecret.bash dev
+
+# 2. Create an encrypted password variable
+bash shellscripts/vault/createVaultedPassword.bash \
+    vault_db_password \
+    ./environment/dev/group_vars/all/vault_database.yml
+
+# 3. View your secrets
+bash shellscripts/vault/dumpGroupSecrets.bash dev
 ```
 
-Alternatively, you can `export vaultScriptsDefaultEnv='prod'` to define a default environment for your current session,
-for example
+## Scripts Reference
+
+Every script prints usage instructions when run without arguments.
+
+### Environment Handling
+
+All scripts accept an optional environment parameter (defaults to `dev`). Scripts auto-detect the environment from output file paths — if the path contains `/environment/prod/`, the script uses `prod` automatically.
+
+You can also set a session default:
 
 ```bash
 export vaultScriptsDefaultEnv=prod
-
-bash shellscripts/vault/generateVaultSecret.bash
-
-bash shellscripts/vault/createVaultedPassword.bash vault_pass_user_foo ./environment/$vaultScriptsDefaultEnv/group_vars/all/vault_user_passwords.yml
-
-bash shellscripts/vault/createVaultedSshKeyPair.bash vault_default ops@domain.com ./environment/$vaultScriptsDefaultEnv/group_vars/all/vault_ssh_keys.yml
 ```
 
-### Generate Vault Secret
+### Secret Generation
 
-This script will generate a secret file for you with a good long chunk of random text
+| Script | Purpose |
+|--------|---------|
+| `generateVaultSecret.bash` | Generate a vault password file with cryptographically random content |
+| `generatePassword.bash` | Generate a random password string |
+
+### Password and String Encryption
+
+| Script | Purpose |
+|--------|---------|
+| `createVaultedPassword.bash` | Generate a random password, encrypt it, assign to a variable |
+| `createVaultedString.bash` | Encrypt a specific string value and assign to a variable |
+| `createVaultedPreSharedKey.bash` | Generate and encrypt a pre-shared key |
+
+**Examples:**
 
 ```bash
-bash shellscripts/vault/generateVaultSecret.bash
+# Generate and encrypt a random password, write to file
+bash shellscripts/vault/createVaultedPassword.bash \
+    vault_db_password \
+    ./environment/prod/group_vars/all/vault_database.yml
+
+# Encrypt a specific string, output to stdout
+bash shellscripts/vault/createVaultedString.bash \
+    vault_api_key \
+    "sk-live-abc123def456"
+
+# Generate a shorter password
+bash shellscripts/vault/createVaultedString.bash \
+    vault_short_pass \
+    "$(bash shellscripts/vault/generatePassword.bash 20)"
 ```
 
-eg `vault-pass-dev.secret`
+### SSH Key Management
 
-```
-85E88clxKzfNtC/Hdh4vKD5GMdY0vbbBPq/9zQJvWD2XSg/g+sv+wSlFXbgPGG2B502/MXV0DvUI1kbcKw+w2IX2knIeZdhw7LSRT8yXBuQQxCkbrfsZaxH/avljFMgdds/bmL/aFedkFMhngLn0xXGlcGgxukr7jv5uBZx/B4kMK92kO9xpOBuRa/I8cs5bY777ZWuS009ZN4WJVXByDe49lLj29FmtXy64A+XsaOzvrM9YM7K5kURfDF0woQV1zjR
-+lMRf/FLKBRdCJ1L1YhKKlBUMPK9kpNPbj1mq5eZ33nqKGEywNaBwJO8T/Jhe/4BPJIa2kyDZFU0kzWKWv+90FfDxUchpeOghzXdWjPJBGXGvyS6Pe/c8t+RTTduMge/rBO7ANziPXSQOT3271KnF7sgaHzWjU9t3/GXRx+bJ/s3/Tgjz9suLtuKJwI/gaPAWx2DABa6/ggXI8F+qdQomdFQ6hyJWPVYpLdcedm6/SMC80Io9He+94VD02Whl74bqS0/+JF/k5zVUyunGcbR2jRmYpixTwnuve5RPDZ6WgoSwbEblXtqpm34U2C35IEz71gOImPax5qrNylnv8iY7GxIu1ryO1x0JZ
-yO5oVDAsRwF/aISUeqj5h2wg/L2829MnRONmQ7NIz5adYsabsb8hAON9nzhHdgQ6CbnKtgpe5OwzqmwPb4E1zgNpoXd1vZfzd+EfP1YvBK/uQjuIE6p5jYX/gIzYn+4dfrUVtjX1pHs7XSGKGEnZ6L32+APZwMmTpA2T6GoqLi+9RYmsAQtygSHGuyuCeYDz5Dg2wbygWLhItZSW6gt7zSc6+MYL6m4rHcUXJxMAv5sI3MmTUQZEfjBxRr3BYjSaygCn6LaI4M5aMdQ/ikyleh/5Ts/TvFatsc5LAxVwRLpaSfs8kKYfqeRUBhx8ImM6pOrZOvOPzpyKDehl7hzdMPTxAqbgEsm5B+xs8+UTL7Ztcmtqc6iGGU+4yuDNzR/tjadyZQiP+mOg5RZV
-uva18Gg9VRrd9vDSugsm2389lhWx5Dwx5y1W8yKKBDAASYKeCgDrxtqYonW0grz0LrnBOrU1zXKHtdEhsMbzpXDU3nKHF2PDIHxupVXtzXrVPecOsJ2UrrBhLu29H4r68yq5k
-```
+| Script | Purpose |
+|--------|---------|
+| `createVaultedSshKeyPair.bash` | Create a password-protected SSH key pair (passphrase + private + public, all encrypted) |
+| `createVaultedSshDeployKeyPair.bash` | Create a passwordless SSH key pair for read-only deploy access |
 
-You can pass a second `update` argument if you want to overwrite an existing file, but of course be careful with that
-
-You should ensure your secret files are NOT tracked by git and are never committed. Instead you MUST make sure you note
-down the secret file contents wherever you manage secrets, eg a password manager or other secure secrets storage system
-
-(Note - Ansible 2.10 allows storing multiple keys in a single file prefixed with the key ID, however for the sake of
-backwards compat, we use a separate file for each key. You could choose to consolidate these into a single file if you
-are using 2.10 or greater)
-
-### Create Vaulted Password
-
-This script will generate as password string and then encrypt it for you, generating yaml that assigns the encrrypt
-password to the specified variable
-
-For example, in the `dev` environment, generate a password and vault it, then write it to the
-file `./environment/dev/vault_user_passwords.yml` assigned to the variable `vault_pass_user_foo`
+**Examples:**
 
 ```bash
+# Password-protected SSH key pair
+bash shellscripts/vault/createVaultedSshKeyPair.bash \
+    vault_deploy \
+    ops@example.com \
+    ./environment/prod/group_vars/all/vault_ssh_keys.yml
 
-bash shellscripts/vault/createVaultedPassword.bash vault_pass_user_foo ./environment/dev/group_vars/all/vault_user_passwords.yml
-
+# Deploy key (no passphrase — use only for read-only deploy keys)
+bash shellscripts/vault/createVaultedSshDeployKeyPair.bash \
+    vault_github_deploy \
+    ops@example.com \
+    ./environment/prod/group_vars/all/vault_ssh_keys.yml
 ```
 
-As above, but instead of writing to file, just write to stdout so that you can copy paste it manually where ever you
-want
-
-```bash
-
-bash shellscripts/vault/createVaultedPassword.bash vault_pass_user_foo
-
-```
-
-#### Generating a lot of passwords
-
-If you want to generate a bunch of passwords, you might want to do something like this:
-
-```bash
-while read -r item; do 
-  printf "\n- $item"; 
-  bash shellscripts/vault/createVaultedPassword.bash $item ./environment/staging/group_vars/all/vault_wordpress.yml staging; 
-done <<< "vault_wordpress_auth_key
-vault_wordpress_secure_auth_key
-vault_wordpress_logged_in_key
-vault_wordpress_nonce_key
-vault_wordpress_auth_salt
-vault_wordpress_secure_auth_salt
-vault_wordpress_logged_in_salt
-vault_wordpress_nonce_salt"
-```
-
-
-### Create Vaulted String - eg Encrypt Specific Password or Other Secret
-
-If you need to encrypt a password that is predefined or has specific requirements not met by the auto generated password
-created with createVaultedPassword.bash then you can use this script
-
-For example, if we need a shorter password than the standard one:
-
-```bash
-bash shellscripts/vault/createVaultedString.bash vault_pass_user_foo "$(bash shellscripts/vault/generatePassword.bash 20)"
-```
-
-### Create Vaulted SSH Key Pair
-
-This script will generate password protected private and public keys, encrypt them as strings and then assign the
-passphrase and the public/private key to variables that are prefixed with teh prefix you specify. Finally this can
-optionally be written directly to the file you specify as normal
-
-For example
-
-```bash
-
-# echo to stdout
-bash shellscripts/vault/createVaultedSshKeyPair.bash vault_default ops@domain.com
-
-# write directly to file
-bash shellscripts/vault/createVaultedSshKeyPair.bash vault_default ops@domain.com ./environment/dev/group_vars/all/vault_ssh_keys.yml
-
-```
-
-Will generate the following variables (truncated for readability):
+The SSH key pair script generates three variables:
 
 ```yaml
-
-vault_default_id_passphrase: !vault |
+vault_deploy_id_passphrase: !vault |
   $ANSIBLE_VAULT;1.2;AES256;dev
-  37383634643132346565376332663265363435316431323236626561626263373965366230313035 (...)
-vault_default_id: !vault |
+  ...
+vault_deploy_id: !vault |
   $ANSIBLE_VAULT;1.2;AES256;dev
-  63373964336530653133336565306533626165646338633061636363666132363731656632636435 (...)
-vault_default_id_pub: !vault |
+  ...
+vault_deploy_id_pub: !vault |
   $ANSIBLE_VAULT;1.2;AES256;dev
-  37666166393434346539356139393432636134633239643531623761396333323761313435663136 (...)
-
-
+  ...
 ```
 
-### Create Vaulted SSH Deploy Key Pair
+### SSL Client Certificates
 
-This script will generate private and public keys with no passsword protection, encrypt them as strings and then assign
-the public/private key to variables that are prefixed with teh prefix you specify.
-
-**_Please do not use this for anything other than read only deploy keys_**
-
-Finally this can optionally be written directly to the file you specify as normal
-
-For example
+| Script | Purpose |
+|--------|---------|
+| `createVaultedSslClientCertificateAndAuth.bash` | Generate a CA and client certificate for mutual TLS authentication |
 
 ```bash
-
-# echo to stdout
-bash shellscripts/vault/createVaultedSshDeployKeyPair.bash vault_github_deploy ops@domain.com
-
-# write directly to file
-bash shellscripts/vault/createVaultedSshKeyPair.bash vault_github_deploy ops@domain.com ./environment/dev/group_vars/all/vault_ssh_keys.yml
-
-```
-
-Will generate the following variables (truncated for readability):
-
-```yaml
-
-vault_github_deploy_id: !vault |
-  $ANSIBLE_VAULT;1.2;AES256;dev
-  63373964336530653133336565306533626165646338633061636363666132363731656632636435 (...)
-vault_github_deploy_id_pub: !vault |
-  $ANSIBLE_VAULT;1.2;AES256;dev
-  37666166393434346539356139393432636134633239643531623761396333323761313435663136 (...)
-
-
-```
-
-### Create Vaulted SSL Client Certificate and Authority
-
-If you want to secure an HTTP endpoint using client SSL certificates then this is a nice solution. This will create a
-certificate authority and generate the client certificate that you can install or use with any client that needs to
-access the HTTP endpoint.
-
-Client certificates are a nice alternative to basic auth. It is not brute forceable at all, you must have the correct
-client certificate installed to be able to access an endpoint secured with client SSL.
-
-Usage:
-
-```bash
-
 bash shellscripts/vault/createVaultedSslClientCertificateAndAuth.bash \
-  [varname_prefix] \
-  [subj] \
-  (optional: outputToFile) \
-  (optional: specifiedEnv - defaults to $defaultEnv) \
-  (optional: keepKeys) (optional: clientSub)
-
-# For example:
-bash shellscripts/vault/createVaultedSslClientCertificateAndAuth.bash \
-  vault_client_foo \
-  '/C=GB/ST=England/L=Shipley/O=Foo Ltd/CN=Foo Ltd/emailAddress=info@foo.dev' \
-   ./environment/prod/group_vars/all/vault_client_certs_foo.yml \
-   prod
-
+    vault_client_foo \
+    '/C=GB/ST=England/L=London/O=Example Ltd/CN=Example Ltd/emailAddress=info@example.com' \
+    ./environment/prod/group_vars/all/vault_client_certs.yml \
+    prod
 ```
 
-To use this:
+Use with Nginx:
 
-
-Configure Nginx:
-
-    ssl_client_certificate /path/to/ca.cert;
-    ssl_verify_client on;
-
-Use CURL (for example) to access:
-
-    curl --cert client.crt --key client.key --cacert ca.cert https://protected.domain.com
-
-
-To get the contents of the files you can use the dumpGroupSecrets.bash script, eg
-
-    bash ./shellscripts/vault/dumpGroupSecrets.bash prod vault_client_foo__client_pass_txt 2>/dev/null
-
-Or of course you can (should) use Ansible to create files etc as required in your various environments
-
-### Copy File Between Environments, Rekeying the Encrypted Variables
-
-There are some (few) scnearios where you need to have the exact same values shared between dev and prod environments.
-Gnerally you would want all passwords etc to be totally unique between environments however there could be a situation
-where there is a value that must be the same between environments. For that situation, we have this script
-
-Usage:
-
-```bash
-
-[currentEnv] [newEnv] [vaultFilePaths ...]
-
-# For example
-bash -x shellscripts/vault/copyVaultFileToEnvironment.bash \
-  prod \
-  dev \
-  ./environment/prod/group_vars/all/vault_client_certs_foo.yml \
-  ./environment/prod/group_vars/all/vault_client_certs_bar.yml 
-
+```nginx
+ssl_client_certificate /path/to/ca.cert;
+ssl_verify_client on;
 ```
 
-In the above example, two client certificate secrets are copied from prod to dev. You can then delete the variables you
-do not need in dev, but can keep the ones you do need - for example the client certificates that might be required to
-authenticate against some prod resource.
+### Multi-Environment Operations
 
-### Dump Secrets in Files
+| Script | Purpose |
+|--------|---------|
+| `allEnvCreateVaultedPassword.bash` | Create the same password across all environments |
+| `allEnvCreateVaultedString.bash` | Encrypt the same string across all environments |
+| `allEnvCreateVaultedSshDeployKeyPair.bash` | Create SSH deploy keys across all environments |
 
-This script will take a file glob of files that you want to pull vaulted variables out of. It will then use `yq` to
-parse out all the variables, find the vaulted ones, decrypt them and then dump all the output
+### Template-Based Bulk Creation
 
-This can be convenient if you just want to look at a single file
+| Script | Purpose |
+|--------|---------|
+| `createPasswordsFromTemplate.bash` | Generate passwords for all variables listed in a template file |
+| `createDeployKeysFromTemplate.bash` | Generate deploy keys for all entries listed in a template file |
 
-It is the only solution for dumping host_var level secrets, or secrets in vars files or any other arbitrary file that
-may have secrets in.
+### Viewing Secrets
 
-You are encouraged to store the majority of your secrets with the `group_vars` folder for your environment and can use
-the `dumpGroupSecrets.bash` script to dump these in bulk, or pull out a single variable, though you can use this script
-for group vars as well if you prefer
-
-Usage:
+| Script | Purpose |
+|--------|---------|
+| `dumpGroupSecrets.bash` | Display decrypted group_vars secrets |
+| `dumpSecretsInFiles.bash` | Display decrypted secrets from arbitrary files (host_vars, etc.) |
 
 ```bash
-# Dump all host_vars files
+# View all group_vars secrets for dev
+bash shellscripts/vault/dumpGroupSecrets.bash dev
+
+# View a single secret
+bash shellscripts/vault/dumpGroupSecrets.bash dev vault_db_password
+
+# Dump secrets from specific files
 bash shellscripts/vault/dumpSecretsInFiles.bash dev environment/dev/host_vars/*.yml
-
-# Dump all group_vars files
-bash shellscripts/vault/dumpSecretsInFiles.bash dev environment/dev/group_vars/all/*.yml
 ```
 
-### Dump Group Var Secrets
+### Rekeying (Password Rotation)
 
-Once you have some secrets stored in an environment folder, you will probably want a way to easily view them
-
-**_Note: this will only give you secrets in your group_vars - it will not include host_vars level secrets**
-If you want to view host secrets, use the `dumpSecretsinFiles.bash` script which can decrypt any file
-
-For this, you can use this script
-
-For example, to view all group_vars secrets in the dev environment
+The `rekeyVaultFile.bash` script solves the "you cannot rekey encrypted strings" limitation. It decrypts each variable with the old key and re-encrypts with the new key.
 
 ```bash
-bash shellscripts/vault/dumpGroupSecrets.bash
-```
+# 1. Generate a new vault password file
+bash shellscripts/vault/generateVaultSecret.bash dev
+# Rename the new file, e.g. vault-pass-dev.secret-new
 
-Or you can dump a single secret:
-
-```bash
-bash shellscripts/vault/dumpGroupSecrets.bash vault_root_pass
-```
-
-Example output:
-
-```
-bash shellscripts/vault/dumpSecrets.bash dev
-
-===========================================
- shellscripts/vault/dumpGroupSecrets.bash dev
-===========================================
-
-
-PLAY [Ansible Ad-Hoc] ***************************************************************************************************************
-
-TASK [vault-scripts : Parse Vault Variables] ****************************************************************************************
-changed: [localhost -> localhost]
-
-TASK [vault-scripts : Debug vaultvars] **********************************************************************************************
-ok: [localhost] => 
-  vaultvars:
-    changed: true
-    cmd: |-
-      grep -rhPo '^[^:]+(?=: )' /opt/Projects/ansible-scratch/environment/dev | grep '^vault' --color=never
-    delta: '0:00:00.004038'
-    end: '2020-12-16 15:03:14.420361'
-    failed: false
-    rc: 0
-    start: '2020-12-16 15:03:14.416323'
-    stderr: ''
-    stderr_lines: []
-    stdout: vault_pass_user_foo
-    stdout_lines:
-    - vault_pass_user_foo
-
-TASK [vault-scripts : Dump Vault Variables] *****************************************************************************************
-ok: [localhost] => (item=vault_pass_user_foo) => 
-  msg: |2-
-  
-    ---------
-  
-    vault_pass_user_foo: =+7qpEa4pJcGhgFwvJCElF3CddaTO2GhUg/Ex3FO6mnUk=
-  
-    ---------
-
-PLAY RECAP **************************************************************************************************************************
-localhost                  : ok=3    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-
-
-```
-
-Note - this script works on the convention that all vaulted variables are root level yaml variables, not part of any
-nested structure, and also that they are prefixed with `vault`. It is suggested that whilst this is a limitation, it is
-not necessarily a bad style to have to conform to. If you need to encrypt things in a nested structure, you will need to
-define them as a top level vaulted variable and then use that vaulted variable in your nested structure.
-
-### ReKey Vault File
-
-You might have heard that using `encrypt-string` means that you can't change your encryption password? Well this script
-lets you do just that.
-
-The process is basically to decrypt using the current key and then re-encrypt using the new key.
-
-First thing to do is prepare a new secret file, for which you can use the script already described
-under [Generate Vault Secret](#generate-vault-secret)
-
-One you are ready to re-encrypt, it is strongly suggested that you have already commited your current state to allow
-easy roll back
-
-Then you can run a command like:
-
-```bash
+# 2. Rekey all vault files
 bash shellscripts/vault/rekeyVaultFile.bash \
-  dev \
-  ./vault-pass-dev.secret \
-  dev \
-  ./vault-pass-dev.secret-new \
-  environment/dev/group_vars/all/vault-*
-```
+    dev \
+    ./vault-pass-dev.secret \
+    dev \
+    ./vault-pass-dev.secret-new \
+    environment/dev/group_vars/all/vault-*
 
-If you have one tier of subfolders in your group vars folder, you coudl do something like 
-```bash
-bash shellscripts/vault/rekeyVaultFile.bash dev ./vault-pass-old.secret dev ./vault-pass-new.secret ./environment/dev/group_vars/*/vault*
-```
-
-In the above, we are rekeying values in the `dev` environment, using the current secret file to read and the new secret
-file to write
-
-When the process runs, it does not overwrite the existing files, instead it makes new versions prefixed with `new_`
-
-You can manually check these to confirm they are OK, and then when you are ready you might want to do something like:
-
-```bash
-# go to the folder where you have been rekeying
+# 3. Review the new_* prefixed files, then replace originals
 cd environment/dev/group_vars/all/
-
-#remove old files
 rm -f vault-*
-
-#move new files into place
 for f in new_vault-*; do mv "$f" "${f#new_}"; done
+
+# 4. Replace the old secret file with the new one
+# 5. Verify with dumpGroupSecrets.bash
 ```
 
-Another option if you have multiple sub folders in group vars, is something like
+### Copying Secrets Between Environments
+
 ```bash
-cd environment/dev/group_vars/; for d in *; do (cd $d; rm -f vault*; for f in new_*; do mv "$f" "${f#new_}"; done;) done
+# Copy vault files from prod to dev (rekeys with the destination environment's password)
+bash shellscripts/vault/copyVaultFileToEnvironment.bash \
+    prod \
+    dev \
+    ./environment/prod/group_vars/all/vault_client_certs.yml
 ```
-Once you are done, first of all you should rename your new secret file so that it is now the same as the secret file
-yuou have configured in `ansible.cfg`.
 
-Then you might want to [Dump Secrets](#dump-secrets) to confirm that everything is working as it should.
+## Conventions
 
-Finally remove your old key, you no longer need it.
+- All vaulted variable names **must** be prefixed with `vault_`
+- Vaulted variables must be **top-level YAML keys** (not nested)
+- Vault password files use the naming pattern `vault-pass-{env}.secret`
+- The `*.secret` glob should be in your `.gitignore`
+
+These constraints are intentional — they make secrets easily identifiable, greppable, and compatible with the dump/rekey tooling.
+
+## Supported Environments
+
+The default environment is `dev`. Common environments:
+
+- `dev` — local/shared development
+- `staging` — pre-production
+- `prod` — production
+- `localdev` — individual developer machines
+
+Each environment uses its own vault password file (`vault-pass-{env}.secret`).
+
+## Licence
+
+Apache License 2.0. See [LICENSE](LICENSE).

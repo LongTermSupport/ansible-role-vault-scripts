@@ -16,7 +16,7 @@ Ansible Vault offers two encryption approaches: encrypting entire files, or encr
 
 The common objection is that `ansible-vault rekey` does not work with encrypted strings. This role solves that with `rekeyVaultFile.bash`.
 
-For a detailed comparison, see [Stop Encrypting Entire Files with Ansible Vault](https://www.yoursite.com/articles/ansible-vault-strings-vs-file-encryption).
+For a detailed comparison, see [Stop Encrypting Entire Files with Ansible Vault](https://ltscommerce.dev/articles/ansible-vault-strings-vs-file-encryption).
 
 ## Installation
 

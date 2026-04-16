@@ -1,12 +1,12 @@
 # Check if scriptDir has been defined
 if [[ -z "$scriptDir" ]]; then
-  echo '
+  cat <<'HELP'
 scriptDir has not been defined, this should be set using something like:
 
   readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)"
 
 Exiting
-  '
+HELP
   exit 1
 fi
 
@@ -49,12 +49,13 @@ set -E
 set -o pipefail
 
 # Better handling of white space
-standardIFS="$IFS"
+export standardIFS="$IFS"
 IFS=$'\n\t'
 
 ######################################
-# Source project-specific settings if available
+# Source role-level settings if available
 if [[ -f "$scriptDir/vaultScriptsSettings.inc.bash" ]]; then
+  # shellcheck source=/dev/null
   source "$scriptDir/vaultScriptsSettings.inc.bash"
 fi
 
@@ -64,7 +65,7 @@ backTraceExit() {
   local err=$?
   set +o xtrace
   local code="${1:-1}"
-  printf "\n\nError in ${BASH_SOURCE[1]}:${BASH_LINENO[0]}. '${BASH_COMMAND}'\n\n exited with status: \n\n$err\n\n"
+  printf '\n\nError in %s:%s. '\''%s'\''\n\n exited with status: \n\n%s\n\n' "${BASH_SOURCE[1]}" "${BASH_LINENO[0]}" "${BASH_COMMAND}" "$err"
   # Print out the stack trace described by $function_stack
   if [ ${#FUNCNAME[@]} -gt 2 ]; then
     echo "Call tree:"
@@ -159,14 +160,15 @@ if [[ '' == "${noHeader:=''}" ]]; then
   ## Some useful info to output
   echo "
 ===========================================
-$(hostname &>/dev/null || echo 'no hostname set') $0 $@
+$(hostname 2>/dev/null || echo 'no hostname set') $0 $*
 ===========================================
 "
 fi
 
 # assumes scriptDir is shellscripts/vault
 #readonly projectDir="$(dirname "$( dirname "$scriptDir")")"
-readonly projectDir="$(findAnsibleCfgDir)"
+projectDir="$(findAnsibleCfgDir)"
+readonly projectDir
 
 if [[ ! -f $projectDir/ansible.cfg ]]; then
   echo "
@@ -177,9 +179,17 @@ if [[ ! -f $projectDir/ansible.cfg ]]; then
   exit 1
 fi
 
-# Source project-specific vault scripts settings if available
+# Source role-level settings (re-source after projectDir is set, in case settings
+# reference projectDir). Then source project-level overrides if they exist.
+# This allows projects to override role defaults without modifying the role.
 if [[ -f "$scriptDir/vaultScriptsSettings.inc.bash" ]]; then
+  # shellcheck source=/dev/null
   source "$scriptDir/vaultScriptsSettings.inc.bash"
 fi
+if [[ -f "$projectDir/vaultScriptsSettings.inc.bash" ]]; then
+  # shellcheck source=/dev/null
+  source "$projectDir/vaultScriptsSettings.inc.bash"
+fi
 
-readonly defaultEnv="${vaultScriptsDefaultEnv:-dev}"
+export defaultEnv="${vaultScriptsDefaultEnv:-dev}"
+readonly defaultEnv

@@ -244,6 +244,40 @@ bash shellscripts/vault/copyVaultFileToEnvironment.bash \
     ./environment/prod/group_vars/all/vault_client_certs.yml
 ```
 
+## Project-Level Configuration
+
+You can override the role's default settings on a per-project basis by creating a `vaultScriptsSettings.inc.bash` file
+in your project root (the directory containing `ansible.cfg`).
+
+This file is sourced **after** the role's own `vaultScriptsSettings.inc.bash`, so any variables you set will override
+the role defaults. This allows you to customise environment names, default email addresses, and other settings without
+modifying the role itself.
+
+Example `vaultScriptsSettings.inc.bash` in your project root:
+
+```bash
+#!/usr/bin/env bash
+# Project-specific vault scripts configuration
+
+# Override default environments (role default: dev prod localdev untrusted)
+export VAULT_SCRIPTS_ENVIRONMENTS="staging production"
+
+# Override default email for deploy keys
+export VAULT_SCRIPTS_DEFAULT_EMAIL="ops@example.com"
+
+# Override default environment (role default: dev)
+export vaultScriptsDefaultEnv="staging"
+```
+
+Available settings (see the role's `shellscripts/vaultScriptsSettings.inc.bash` for the full list):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VAULT_SCRIPTS_ENVIRONMENTS` | `dev prod localdev untrusted` | Space-separated list of valid environment names |
+| `VAULT_SCRIPTS_DEFAULT_EMAIL` | (none) | Default email address for deploy key generation |
+| `VAULT_SCRIPTS_SKIP_EXISTING` | `true` | Skip existing keys without error (`true`) or fail (`false`) |
+| `vaultScriptsDefaultEnv` | `dev` | Default environment when none is specified |
+
 ## Conventions
 
 - All vaulted variable names **must** be prefixed with `vault_`

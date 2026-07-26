@@ -85,18 +85,19 @@ export vaultScriptsDefaultEnv=prod
 
 ### Secret Generation
 
-| Script | Purpose |
-|--------|---------|
+| Script                     | Purpose                                                              |
+| -------------------------- | -------------------------------------------------------------------- |
 | `generateVaultSecret.bash` | Generate a vault password file with cryptographically random content |
-| `generatePassword.bash` | Generate a random password string |
+| `generatePassword.bash`    | Generate a random password string                                    |
 
 ### Password and String Encryption
 
-| Script | Purpose |
-|--------|---------|
-| `createVaultedPassword.bash` | Generate a random password, encrypt it, assign to a variable |
-| `createVaultedString.bash` | Encrypt a specific string value and assign to a variable |
-| `createVaultedPreSharedKey.bash` | Generate and encrypt a pre-shared key |
+| Script                              | Purpose                                                                                                                                                    |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `createVaultedPassword.bash`        | Generate a random password, encrypt it, assign to a variable                                                                                               |
+| `createVaultedString.bash`          | Encrypt a specific string value (passed as an argument) and assign to a variable                                                                           |
+| `createVaultedStringFromStdin.bash` | Encrypt a secret **read from stdin** (never an argument) — pipe a token straight in so the plaintext never hits argv, the process list, or terminal output |
+| `createVaultedPreSharedKey.bash`    | Generate and encrypt a pre-shared key                                                                                                                      |
 
 **Examples:**
 
@@ -115,14 +116,20 @@ bash shellscripts/vault/createVaultedString.bash \
 bash shellscripts/vault/createVaultedString.bash \
     vault_short_pass \
     "$(bash shellscripts/vault/generatePassword.bash 20)"
+
+# Encrypt a secret WITHOUT it ever appearing on the command line: pipe it in.
+# Ideal for a token fetched from a CLI — the plaintext never hits argv or history.
+gh auth token | bash shellscripts/vault/createVaultedStringFromStdin.bash \
+    vault_github_token \
+    ./environment/prod/group_vars/all/vault_github.yml
 ```
 
 ### SSH Key Management
 
-| Script | Purpose |
-|--------|---------|
-| `createVaultedSshKeyPair.bash` | Create a password-protected SSH key pair (passphrase + private + public, all encrypted) |
-| `createVaultedSshDeployKeyPair.bash` | Create a passwordless SSH key pair for read-only deploy access |
+| Script                               | Purpose                                                                                 |
+| ------------------------------------ | --------------------------------------------------------------------------------------- |
+| `createVaultedSshKeyPair.bash`       | Create a password-protected SSH key pair (passphrase + private + public, all encrypted) |
+| `createVaultedSshDeployKeyPair.bash` | Create a passwordless SSH key pair for read-only deploy access                          |
 
 **Examples:**
 
@@ -156,8 +163,8 @@ vault_deploy_id_pub: !vault |
 
 ### SSL Client Certificates
 
-| Script | Purpose |
-|--------|---------|
+| Script                                          | Purpose                                                            |
+| ----------------------------------------------- | ------------------------------------------------------------------ |
 | `createVaultedSslClientCertificateAndAuth.bash` | Generate a CA and client certificate for mutual TLS authentication |
 
 ```bash
@@ -177,24 +184,24 @@ ssl_verify_client on;
 
 ### Multi-Environment Operations
 
-| Script | Purpose |
-|--------|---------|
-| `allEnvCreateVaultedPassword.bash` | Create the same password across all environments |
-| `allEnvCreateVaultedString.bash` | Encrypt the same string across all environments |
-| `allEnvCreateVaultedSshDeployKeyPair.bash` | Create SSH deploy keys across all environments |
+| Script                                     | Purpose                                          |
+| ------------------------------------------ | ------------------------------------------------ |
+| `allEnvCreateVaultedPassword.bash`         | Create the same password across all environments |
+| `allEnvCreateVaultedString.bash`           | Encrypt the same string across all environments  |
+| `allEnvCreateVaultedSshDeployKeyPair.bash` | Create SSH deploy keys across all environments   |
 
 ### Template-Based Bulk Creation
 
-| Script | Purpose |
-|--------|---------|
-| `createPasswordsFromTemplate.bash` | Generate passwords for all variables listed in a template file |
+| Script                              | Purpose                                                        |
+| ----------------------------------- | -------------------------------------------------------------- |
+| `createPasswordsFromTemplate.bash`  | Generate passwords for all variables listed in a template file |
 | `createDeployKeysFromTemplate.bash` | Generate deploy keys for all entries listed in a template file |
 
 ### Viewing Secrets
 
-| Script | Purpose |
-|--------|---------|
-| `dumpGroupSecrets.bash` | Display decrypted group_vars secrets |
+| Script                    | Purpose                                                          |
+| ------------------------- | ---------------------------------------------------------------- |
+| `dumpGroupSecrets.bash`   | Display decrypted group_vars secrets                             |
 | `dumpSecretsInFiles.bash` | Display decrypted secrets from arbitrary files (host_vars, etc.) |
 
 ```bash
@@ -271,12 +278,12 @@ export vaultScriptsDefaultEnv="staging"
 
 Available settings (see the role's `shellscripts/vaultScriptsSettings.inc.bash` for the full list):
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `VAULT_SCRIPTS_ENVIRONMENTS` | `dev prod localdev untrusted` | Space-separated list of valid environment names |
-| `VAULT_SCRIPTS_DEFAULT_EMAIL` | (none) | Default email address for deploy key generation |
-| `VAULT_SCRIPTS_SKIP_EXISTING` | `true` | Skip existing keys without error (`true`) or fail (`false`) |
-| `vaultScriptsDefaultEnv` | `dev` | Default environment when none is specified |
+| Variable                      | Default                       | Description                                                 |
+| ----------------------------- | ----------------------------- | ----------------------------------------------------------- |
+| `VAULT_SCRIPTS_ENVIRONMENTS`  | `dev prod localdev untrusted` | Space-separated list of valid environment names             |
+| `VAULT_SCRIPTS_DEFAULT_EMAIL` | (none)                        | Default email address for deploy key generation             |
+| `VAULT_SCRIPTS_SKIP_EXISTING` | `true`                        | Skip existing keys without error (`true`) or fail (`false`) |
+| `vaultScriptsDefaultEnv`      | `dev`                         | Default environment when none is specified                  |
 
 ## Conventions
 

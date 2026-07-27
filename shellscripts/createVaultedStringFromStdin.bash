@@ -29,7 +29,13 @@ appears in the process list, shell history, or terminal output.
 If you already have the plaintext on the command line, use ./createVaultedString.bash.
 For a random password, use ./createVaultedPassword.bash.
 
-Usage: <secret-on-stdin> | ./$(basename "$0") [varname] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv)
+Usage: <secret-on-stdin> | ./$(basename "$0") [--replace] [varname] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv)
+
+--replace ROTATES an existing secret: the current definition of varname (its key line and
+its whole indented !vault ciphertext block) is removed from outputToFile before the new one
+is written, so the file ends up with exactly one definition. Without it, a varname that
+already exists is a hard error — that stays the default so overwriting a live secret by
+accident remains difficult.
 
 Please note:
 - The varname must be prefixed with 'vault_'
@@ -48,6 +54,18 @@ Examples:
 HELP
   exit 1
 }
+
+# --replace makes ROTATION possible. Without it, a varname that already exists is a hard
+# error and the only way to rotate a credential was to hand-edit the vault file — which is
+# not a thing anyone should be asked to do by hand on a file full of ciphertext.
+# Opt-in on purpose: overwriting a live secret by accident must stay difficult, so the
+# default behaviour, and every existing caller, is completely unchanged.
+allowReplace=0
+if [[ "${1:-}" == "--replace" ]]; then
+  allowReplace=1
+  shift
+fi
+readonly allowReplace
 
 # Usage
 if (($# < 1 || $# > 3)); then
@@ -88,7 +106,7 @@ source ./_vault.inc.bash
 assertValidEnv "$specifiedEnv"
 assertPrefixedWithVault "$varname"
 readonly prefixed_varname="$varname"
-validateOutputToFile "$outputToFile" "$varname"
+validateOutputToFile "$outputToFile" "$varname" "$allowReplace"
 
 # Create the vault string. The secret is fed to ansible-vault on stdin, exactly
 # as the sibling scripts do, so it is never an argument here either.

@@ -1,11 +1,15 @@
 
 
+# environmentArray and defaultEnv are defined by the _top.inc.bash / _vault.inc.bash files
+# that source this one, so they are not assigned here. They are referenced with `:-` defaults
+# rather than silenced with a directive: an unset environmentArray then fails the comparison
+# and reports a clear error, instead of expanding to nothing and matching every env.
 function assertValidEnv(){
   local _env="$1"
-  if [[ "${environmentArray[*]}" == *${_env}* ]]; then
+  if [[ "${environmentArray[*]:-}" == *"${_env}"* ]]; then
     return 0
   fi
-  error "Error, specified env $_env is not found in ${environmentArray[*]}"
+  error "Error, specified env $_env is not found in ${environmentArray[*]:-<unset>}"
   exitFromFunction
 }
 
@@ -45,7 +49,7 @@ function writeEncrypted(){
   ##########################################################################
   # Vault File Created with %s at %s
   ##########################################################################
-  \n" "$(basename $0)" "$(date)" >"$_outputToFile"
+  \n" "$(basename "$0")" "$(date)" >"$_outputToFile"
   fi
   ensureFileEndsInNewline "$_outputToFile"
 
@@ -53,10 +57,19 @@ function writeEncrypted(){
   echo "$_varname created and added to $_outputToFile"
 }
 
-# @see https://unix.stackexchange.com/a/31955
+# Append a trailing newline only if the file lacks one, so the next `>>` append starts on its
+# own line rather than being glued onto the last one — which for a vault file would corrupt
+# the preceding entry.
+#
+# Pure bash rather than the previous `sed -i -e '$a\'`: that spelling tripped SC1003, and this
+# project bans in-place sed outright. Command substitution strips trailing newlines, so if the
+# final byte IS a newline the capture is empty and nothing is appended; if it is any other
+# character the capture is non-empty and one newline is added.
 function ensureFileEndsInNewline(){
   local _filePath="$1"
-  sed -i -e '$a\' "$_filePath"
+  if [[ -s "$_filePath" ]] && [[ -n "$(tail -c 1 "$_filePath")" ]]; then
+    printf '\n' >> "$_filePath"
+  fi
 }
 
 function ansibleVersion(){
@@ -106,22 +119,72 @@ function ansibleVersionAtLeast () {
 }
 
 
+# Remove a vaulted variable and its whole `!vault |` ciphertext block from a vault file.
+#
+# A vaulted var is a YAML block scalar: the `varname:` line followed by indented
+# continuation lines. Removing it means dropping the key line and every following line that
+# is indented or blank, stopping at the next top-level key — which is what this does.
+#
+# Rewrites via a temp file and `mv` so the vault file is replaced ATOMICALLY. An in-place
+# edit that is interrupted half-way through would leave a truncated vault file, i.e. destroy
+# every other secret in it — a far worse outcome than the duplicate this exists to avoid.
+function removeVaultedVarFromFile(){
+  local _outputToFile="$1"
+  local _varname="$2"
+  local _tmp
+  _tmp="$(mktemp "${_outputToFile}.XXXXXX")"
+  awk -v var="$_varname" '
+    BEGIN { skipping = 0 }
+    # A new top-level key (non-indented, not a comment) always ends any skip.
+    /^[^[:space:]#]/ {
+      if (skipping && $0 !~ "^"var":") { skipping = 0 }
+    }
+    $0 ~ "^"var":" { skipping = 1; next }
+    skipping {
+      # Indented or blank lines belong to the block being removed.
+      if ($0 ~ /^[[:space:]]/ || $0 ~ /^$/) { next }
+      skipping = 0
+    }
+    { print }
+  ' "$_outputToFile" > "$_tmp"
+  chmod --reference="$_outputToFile" "$_tmp"
+  mv -f "$_tmp" "$_outputToFile"
+  echo "Removed existing '$_varname' block from $_outputToFile (replacing it)"
+}
+
+# validateOutputToFile <file> <varname> [allowReplace]
+#
+# By DEFAULT an existing varname is still a hard error — accidentally overwriting a live
+# secret must stay difficult, and every existing caller keeps that behaviour unchanged.
+# Passing allowReplace=1 is the opt-in that makes ROTATION possible: the old block is
+# removed here so the caller's append writes the only definition of the key. Without this,
+# rotating a vaulted credential required hand-editing the vault file, which is not something
+# anyone should be asked to do by hand.
+#
+# The library's own CLAUDE.md listed "implement a way to update existing keys without
+# recreating them" as a future improvement; this is that.
 function validateOutputToFile(){
   local _outputToFile="$1"
   local _varname="$2"
+  local _allowReplace="${3:-0}"
   local _outputToFileDirname
   if [[ "" != "$_outputToFile" ]]; then
     if [[ "$_outputToFile" != /* ]]; then
-      echo "Error, outputToFile must be an absolute path, you have passed in: '$_outputToFile'. Try using "'$(pwd)/path/to/file'
+      echo "Error, outputToFile must be an absolute path, you have passed in: '$_outputToFile'. Try using \$(pwd)/path/to/file"
       exitFromFunction
     fi
     if [[ -f $_outputToFile ]]; then
-      if [[ "" != "$(grep "^$_varname:" $_outputToFile)" ]]; then
-        echo " Error, $_varname already defined in file $_outputToFile"
-        exitFromFunction
+      if [[ "" != "$(grep "^$_varname:" "$_outputToFile")" ]]; then
+        if [[ "1" == "$_allowReplace" ]]; then
+          removeVaultedVarFromFile "$_outputToFile" "$_varname"
+        else
+          echo " Error, $_varname already defined in file $_outputToFile"
+          echo " (pass --replace to the calling script to rotate it in place)"
+          exitFromFunction
+        fi
       fi
     fi
-    _outputToFileDirname="$(dirname $_outputToFile)"
+    _outputToFileDirname="$(dirname "$_outputToFile")"
     echo "Ensuring $_outputToFileDirname directory exists"
     mkdir -p "$_outputToFileDirname" || echo "already exists"
   fi
@@ -210,7 +273,8 @@ function detectEnvironmentFromPath() {
   # Look for environment pattern in path and validate it exists
   if [[ "$filePath" == *"/environment/"* ]]; then
     # Extract potential environment from the path
-    local pathEnv=$(echo "$filePath" | grep -oP '(?<=/environment/)[^/]+')
+    local pathEnv
+    pathEnv=$(echo "$filePath" | grep -oP '(?<=/environment/)[^/]+')
     
     # Check if the found environment is in our valid environments list
     local validEnv=false
@@ -236,7 +300,7 @@ function detectEnvironmentFromPath() {
   fi
   
   # If environment detected and no environment specified, use detected
-  if [[ "$inputEnv" == "$defaultEnv" ]]; then
+  if [[ "$inputEnv" == "${defaultEnv:-}" ]]; then
     # Print message to stderr so it doesn't get captured as output
     echo "Detected environment '$detectedEnv' from file path. Using this environment instead of default." >&2
     echo "$detectedEnv"

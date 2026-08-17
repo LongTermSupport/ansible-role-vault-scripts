@@ -161,6 +161,41 @@ vault_deploy_id_pub: !vault |
   ...
 ```
 
+### WireGuard Key Management
+
+| Script                               | Purpose                                                                                                          |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `createVaultedWireguardKeyPair.bash` | Mint a WireGuard-compatible X25519 keypair; vault the private half, print the (non-secret) public half to stdout |
+
+No `wg` binary is required — WireGuard keys are raw 32-byte Curve25519 scalars, base64-encoded,
+identical to what `openssl genpkey -algorithm X25519` produces. The private key is never written
+to disk in the clear and never printed; only its base64 form ever exists, and only inside shell
+variables and pipes between `openssl` and `ansible-vault`.
+
+```bash
+bash shellscripts/vault/createVaultedWireguardKeyPair.bash \
+    vault_wg_green_private_key \
+    ./environment/prod/group_vars/all/vault_ssh_keys.yml
+```
+
+This generates one variable — the private key:
+
+```yaml
+vault_wg_green_private_key: !vault |
+  $ANSIBLE_VAULT;1.2;AES256;prod
+  ...
+```
+
+...and prints the public key to stdout for you to paste wherever this project keeps public keys
+(WireGuard public keys are not secret — most projects keep them in a plain, unvaulted file next
+to the vaulted private halves, for easy review):
+
+```
+Public key (NOT secret — paste this wherever this project keeps public keys):
+
+  m9UoakaOAh3C8YY9rjNFrQRMNhBlgVPANipGv4GwQ3w=
+```
+
 ### SSL Client Certificates
 
 | Script                                          | Purpose                                                            |

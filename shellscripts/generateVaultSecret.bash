@@ -38,6 +38,19 @@ fi
 
 touch "$fileToCreate"
 
+# Lock the file down BEFORE the passphrase is written into it, not after.
+#
+# `touch` applies the caller's umask, and the login default on a stock Fedora
+# (/etc/login.defs UMASK 022) is 022 — so this file is created world-readable
+# and the vault passphrase is then appended to it. Anyone with a shell on the
+# box can read the key to every secret in the project.
+#
+# The chmod has to sit between the touch and the write. Doing it afterwards
+# leaves a window in which the passphrase is on disk and world-readable, and a
+# reader only has to win that race once. Running it on the `update` path as well
+# repairs a file created by an older version of this script.
+chmod 600 "$fileToCreate"
+
 # Source vault top
 source ./_vault.inc.bash
 

@@ -309,9 +309,11 @@ ssl_verify_client on;
 
 ```bash
 # Explore: every `!vault` variable under environment/dev/ (group_vars AND host_vars, any
-# depth) with a live decrypted preview. ENTER on one row copies it to the clipboard
-# (wl-copy / xclip / xsel / pbcopy, auto-detected; only a notice reaches stdout).
-# TAB-select several and ENTER dumps them as a blob.
+# depth) with a live decrypted preview. Typing filters by plain substring; TAB completes
+# the query like a shell (to the one match, or by whatever every match shares next).
+# ENTER on one row copies it to the clipboard (wl-copy / xclip / xsel / pbcopy,
+# auto-detected; only a notice reaches stdout). CTRL-T-select several and ENTER dumps
+# them as a blob.
 bash shellscripts/vault/browseSecrets.bash dev
 
 # Everything in the environment as one blob (name, file, value), no picker

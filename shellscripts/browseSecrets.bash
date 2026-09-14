@@ -8,12 +8,15 @@
 #   browseSecrets.bash --get <name> [--file <path>] [env]   one secret, exactly, on stdout
 #
 # The picker lists every `<name>: !vault |` under environment/<env>/ (group_vars AND
-# host_vars, at any depth) with a live decrypted preview. Enter on ONE row copies its value
-# to the clipboard (wl-copy, xclip, xsel or pbcopy — whichever is installed; stdout carries
-# only a notice, never the value). TAB-select several rows, or run with --all, and the
-# selection is dumped as a blob: `=== name  (file)` then the value, one block per secret.
-# `--get` accepts the name with or without its `vault_` prefix; a name that lives in more
-# than one file must be pinned with --file.
+# host_vars, at any depth) with a live decrypted preview. Typing filters by plain substring
+# (fzf --exact, not fuzzy per-character); TAB completes the query to the longest common
+# prefix of the matching names, or to the one remaining match. Enter on ONE row copies its
+# value to the clipboard (wl-copy, xclip, xsel or pbcopy — whichever is installed; stdout
+# carries only a notice, never the value). CTRL-T-select several rows, or run with --all,
+# and the selection is dumped as a blob: `=== name  (file)` then the value, one block per
+# secret. `--get` accepts the name with or without its `vault_` prefix; a name that lives
+# in more than one file must be pinned with --file. `--complete <query>` is the TAB
+# helper: it prints the completed query and is what fzf's transform-query binding runs.
 #
 # Environment overrides (tests and unusual desktops):
 #   BROWSE_SECRETS_PICKER     the picker command, fed rows on stdin, expected to print the
@@ -45,6 +48,7 @@ usage() {
   $(basename "$0") --list [specifiedEnv]                every vaulted variable and its file
   $(basename "$0") --all [specifiedEnv]                 every secret decrypted, as one blob
   $(basename "$0") --get <name> [--file <path>] [env]   one secret on stdout
+  $(basename "$0") --complete <query> [specifiedEnv]    the query completed against the names
 
   specifiedEnv defaults to $defaultEnv.
 
@@ -55,6 +59,7 @@ USAGE
 mode="pick"
 getName=""
 pinFile=""
+completeQuery=""
 positional=()
 while (( $# > 0 )); do
   case "$1" in
@@ -67,6 +72,11 @@ while (( $# > 0 )); do
     --file)
       [[ -n "${2:-}" ]] || usage
       pinFile="$2"; shift 2 ;;
+    --complete)
+      mode="complete"
+      # An empty query is legitimate: TAB on an empty prompt completes to the common prefix.
+      (( $# >= 2 )) || usage
+      completeQuery="$2"; shift 2 ;;
     -h|--help) usage ;;
     --*) error "unknown option $1"; usage ;;
     *) positional+=("$1"); shift ;;
@@ -143,6 +153,28 @@ $(printf '%s\n' "$matches" | awk -F'\t' '{ print "    " $2 }')"
   printf '%s\n' "$matches"
 }
 
+# completeQuery <query>: the query extended the way a shell's TAB would. Names containing
+# the query (case-insensitive substring) are the candidates: one candidate completes to the
+# whole name; several extend the query by whatever they all share immediately AFTER it
+# (each name's tail from the query's first occurrence, longest common prefix of those);
+# nothing shared, or no candidate, returns the query unchanged. Prints, never fails.
+completeQuery() {
+  local q="$1"
+  listRows | cut -f1 | sort -u | awk -v q="$q" '
+    BEGIN { lq = tolower(q) }
+    { at = index(tolower($0), lq) } at == 0 { next }
+    { n++; c[n] = substr($0, at); whole = $0 }
+    END {
+      if (n == 0) { print q; exit }
+      if (n == 1) { print whole; exit }
+      p = c[1]
+      for (i = 2; i <= n; i++) {
+        while (tolower(substr(c[i], 1, length(p))) != tolower(p)) p = substr(p, 1, length(p) - 1)
+      }
+      print (length(p) > length(q)) ? p : q
+    }'
+}
+
 # clipboardCommand: the words of the clipboard command, or nothing when there is none.
 clipboardCommand() {
   local configured="${BROWSE_SECRETS_CLIPBOARD:-}"
@@ -167,6 +199,9 @@ case "$mode" in
   all)
     listRows | dumpBlob
     ;;
+  complete)
+    completeQuery "$completeQuery"
+    ;;
   get)
     row="$(resolveRow "$getName" "$pinFile")"
     IFS=$'\t' read -r name file <<<"$row"
@@ -182,9 +217,14 @@ case "$mode" in
         exit 1
       fi
       # The preview re-enters this script for one row; {1}/{2} are the row's name and file.
-      picker=(fzf --multi --delimiter $'\t' --with-nth 3
-        --header 'ENTER: copy one to the clipboard · TAB: select several, ENTER dumps them · ESC: quit'
-        --preview "VAULT_SCRIPTS_PROJECT_DIR='$projectDir' '$scriptDir/browseSecrets.bash' --get {1} --file {2} '$finalSpecifiedEnv'"
+      # --exact: plain substring matching. TAB re-enters this script to complete the query;
+      # multi-select therefore moves to CTRL-T. {q} is the current query.
+      self="VAULT_SCRIPTS_PROJECT_DIR='$projectDir' '$scriptDir/browseSecrets.bash'"
+      picker=(fzf --multi --exact --delimiter $'\t' --with-nth 3
+        --header 'type to filter (substring) · TAB: complete · ENTER: copy one to the clipboard · CTRL-T: select several, ENTER dumps them · ESC: quit'
+        --bind "tab:transform-query($self --complete {q} '$finalSpecifiedEnv')"
+        --bind 'ctrl-t:toggle+down'
+        --preview "$self --get {1} --file {2} '$finalSpecifiedEnv'"
         --preview-window 'down:40%:wrap')
     fi
     chosen="$(listRows | alignedRows | "${picker[@]}")" || { printf 'nothing chosen\n' >&2; exit 0; }

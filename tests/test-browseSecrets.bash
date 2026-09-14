@@ -96,6 +96,21 @@ check "picker: one selection with a clipboard copies the exact value" "$secretVa
 check "picker: …and prints no value, only the notice" "1" "$(grep -c -E '^copied vault_db_password to the clipboard \(21 characters\)' <<<"$out")"
 check "picker: …the value is absent from stdout" "0" "$(grep -c -F 'p4ss w' <<<"$out")"
 
+# --complete: the TAB helper behind the picker (names: vault_db_password, vault_api_key ×2 files,
+# vault_host_token).
+check "--complete: a single substring hit completes to the whole name" "vault_db_password" "$("$script" --complete pass dev)"
+check "--complete: …case-insensitively" "vault_db_password" "$("$script" --complete PASS dev)"
+check "--complete: an empty query completes to the common prefix of every name" "vault_" "$("$script" --complete '' dev)"
+check "--complete: a prefix shared by several extends to their common prefix" "vault_" "$("$script" --complete va dev)"
+check "--complete: a mid-name substring with nothing shared after it is left alone" "_" "$("$script" --complete _ dev)"
+# The picker names now also include vault_host_token's sibling below, so "host_" has two
+# continuations sharing "to": the query grows by exactly what they share.
+"$roleScripts/createVaultedString.bash" vault_host_topic 'topic' environment/dev/host_vars/web3.yml dev > /dev/null
+check "--complete: a mid-name substring extends by what every match shares after it" "host_to" "$("$script" --complete host_ dev)"
+check "--complete: …and no further once the matches diverge" "host_to" "$("$script" --complete host_to dev)"
+check "--complete: no hit leaves the query alone" "zzz" "$("$script" --complete zzz dev)"
+check "--complete: the same name in two files is one candidate" "vault_api_key" "$("$script" --complete api dev)"
+
 rc=0; err=$("$script" --get 2>&1 >/dev/null) || rc=$?
 check "--get with no name is a usage error" "1" "$rc"
 

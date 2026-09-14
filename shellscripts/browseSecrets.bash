@@ -90,6 +90,14 @@ listRows() {
         }'
 }
 
+# alignedRows: rows on stdin → "name<TAB>file<TAB>display" where display is the name padded
+# to the widest name, then the file, so the two columns line up. Fields 1 and 2 stay exact.
+alignedRows() {
+  awk -F'\t' '
+    { name[NR] = $1; file[NR] = $2; if (length($1) > w) w = length($1) }
+    END { for (i = 1; i <= NR; i++) printf "%s\t%s\t%-*s  %s\n", name[i], file[i], w, name[i], file[i] }'
+}
+
 # decryptOne <name> <relative-file>: the value, exactly, on stdout. The vaulted block is the
 # indented lines after the key; the plaintext never touches argv or disk.
 decryptOne() {
@@ -110,7 +118,7 @@ decryptOne() {
 # dumpBlob: rows on stdin → the blob on stdout.
 dumpBlob() {
   local name file
-  while IFS=$'\t' read -r name file; do
+  while IFS=$'\t' read -r name file _; do
     [[ -n "$name" ]] || continue
     printf '=== %s  (%s)\n' "$name" "$file"
     decryptOne "$name" "$file"
@@ -154,7 +162,7 @@ clipboardCommand() {
 
 case "$mode" in
   list)
-    listRows
+    listRows | alignedRows | cut -f3
     ;;
   all)
     listRows | dumpBlob
@@ -174,17 +182,17 @@ case "$mode" in
         exit 1
       fi
       # The preview re-enters this script for one row; {1}/{2} are the row's name and file.
-      picker=(fzf --multi --delimiter $'\t' --with-nth "1,2"
+      picker=(fzf --multi --delimiter $'\t' --with-nth 3
         --header 'ENTER: copy one to the clipboard · TAB: select several, ENTER dumps them · ESC: quit'
         --preview "VAULT_SCRIPTS_PROJECT_DIR='$projectDir' '$scriptDir/browseSecrets.bash' --get {1} --file {2} '$finalSpecifiedEnv'"
         --preview-window 'down:40%:wrap')
     fi
-    chosen="$(listRows | "${picker[@]}")" || { printf 'nothing chosen\n' >&2; exit 0; }
+    chosen="$(listRows | alignedRows | "${picker[@]}")" || { printf 'nothing chosen\n' >&2; exit 0; }
     [[ -n "$chosen" ]] || { printf 'nothing chosen\n' >&2; exit 0; }
     chosenCount="$(printf '%s\n' "$chosen" | wc -l)"
     clip="$(clipboardCommand)"
     if (( chosenCount == 1 )) && [[ -n "$clip" ]]; then
-      IFS=$'\t' read -r name file <<<"$chosen"
+      IFS=$'\t' read -r name file _ <<<"$chosen"
       value="$(decryptOne "$name" "$file")"
       IFS="$standardIFS" read -r -a clipCmd <<<"$clip"
       printf '%s' "$value" | "${clipCmd[@]}"

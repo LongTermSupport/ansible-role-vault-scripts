@@ -54,6 +54,8 @@ out=$("$script" --list dev)
 check "--list: every vaulted variable across group_vars and host_vars, one per line" "3" "$(grep -c -E '^vault_(db_password|api_key|host_token)[[:space:]]' <<<"$out")"
 check "--list: an unvaulted variable is not listed" "0" "$(grep -c 'plain_value' <<<"$out")"
 check "--list: each row carries its file relative to the project" "1" "$(grep -c -E '^vault_host_token[[:space:]]+environment/dev/host_vars/web1.yml$' <<<"$out")"
+check "--list: the file column is aligned (name padded to the widest name plus two spaces)" "1" "$(grep -c -E '^vault_api_key      environment/' <<<"$out")"
+check "--list: …on every row" "1" "$(awk '{ c[index($0, "environment/")]++ } END { print length(c) }' <<<"$out")"
 
 out=$("$script" --get vault_db_password dev)
 check "--get: decrypts one value by name, exactly" "$secretValue" "$out"

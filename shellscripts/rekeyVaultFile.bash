@@ -55,21 +55,20 @@ for vaultFilePath in "${@:5}"; do
   # see https://stackoverflow.com/questions/43467180/how-to-decrypt-string-with-ansible-vault-2-3-0
   ## Process
 
-  readarray params < <(yq r $vaultFilePath --printMode p '*' -j)
-  readarray valuesEncrypted < <(yq r $vaultFilePath --printMode v '*' -j)
+  ## Process - yq v4 syntax: list the top-level keys, then read each value raw
+  readarray -t params < <(yq eval 'keys | .[]' "$vaultFilePath")
   declare -a valuesDecrypted
   valuesDecrypted=()
 
-  # loop over encrypted and build array of decrypted
-  for vEnc in "${valuesEncrypted[@]}"; do
+  # loop over params and build array of decrypted
+  for param in "${params[@]}"; do
+    vEnc="$(yq eval ".[\"$param\"]" "$vaultFilePath")"
     if [[ $vEnc != *ANSIBLE_VAULT* ]];
     then
       valuesDecrypted+=("$vEnc")
       continue
     fi
-    vEnc="$(echo "$vEnc" | sed 's#\$ANSIBLE#ANSIBLE#g')"
-    eval "vEncVal=$vEnc"
-    valuesDecrypted+=("$(printf "%s$vEncVal" '$' \
+    valuesDecrypted+=("$(printf '%s\n' "$vEnc" \
       | ansible-vault decrypt  --vault-id="$currentKeyFileID@$currentKeyFilePath" - \
       | grep -v 'Decryption successful' )")
   done

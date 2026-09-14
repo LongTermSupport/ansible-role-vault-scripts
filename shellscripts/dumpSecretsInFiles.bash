@@ -37,29 +37,23 @@ Dumping Vault Secrets in $vaultFilePath
   assertFilesExist "$vaultFilePath"
 
   # see https://stackoverflow.com/questions/43467180/how-to-decrypt-string-with-ansible-vault-2-3-0
-  ## Process
-
-
-
-  readarray params < <(yq r $vaultFilePath --printMode p '*' -j)
-  readarray valuesEncrypted < <(yq r $vaultFilePath --printMode v '*' -j)
+  ## Process - yq v4 syntax: list the top-level keys, then read each value raw
+  readarray -t params < <(yq eval 'keys | .[]' "$vaultFilePath")
   declare -a paramsDecrypted
   paramsDecrypted=()
   declare -a valuesDecrypted
   valuesDecrypted=()
-  # loop over encrypted and build array of decrypted
-  for vEncId in "${!valuesEncrypted[@]}"; do
-    vEnc="${valuesEncrypted[$vEncId]}"
+  # loop over params, decrypt every vaulted value
+  for param in "${params[@]}"; do
+    vEnc="$(yq eval ".[\"$param\"]" "$vaultFilePath")"
     if [[ $vEnc != *ANSIBLE_VAULT* ]];
     then
       continue
     fi
-    vEnc="$(echo "$vEnc" | sed 's#\$ANSIBLE#ANSIBLE#g')"
-    eval "vEncVal=$vEnc"
-    valuesDecrypted+=("$(printf "%s$vEncVal" '$' \
+    valuesDecrypted+=("$(printf '%s\n' "$vEnc" \
       | ansible-vault decrypt  --vault-id="$finalSpecifiedEnv@$vaultSecretsPath" - \
       | grep -v 'Decryption successful' )")
-    paramsDecrypted+=("${params[$vEncId]}")
+    paramsDecrypted+=("$param")
   done
   for i in "${!valuesDecrypted[@]}"; do
     printf "\n\nParam: %s\nDecrypted:\n%s\n\n" "${paramsDecrypted[i]}" "${valuesDecrypted[$i]}"

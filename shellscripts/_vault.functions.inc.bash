@@ -232,12 +232,29 @@ function assertYqInstalled(){
       exit 1
     fi
 
-    # Check for yq v4+ (v3 uses "yq version", v4 uses "yq --version")
-    local yqVersion
-    yqVersion=$(yq --version 2>&1 | grep -oP 'v?\K[0-9]+' | head -1)
-    if [[ "$yqVersion" -lt 4 ]]; then
+    # Fail fast on anything but mikefarah yq v4+: every yq call in these scripts is v4 syntax.
+    # mikefarah v3 prints "yq version 3.4.1", v4 prints "... version v4.53.6"; the python
+    # (kislyuk) yq prints "yq 3.2.3" and never matches the "version" form at all.
+    local yqVersionOutput yqMajor
+    yqVersionOutput="$(yq --version 2>&1)"
+    if [[ "$yqVersionOutput" =~ version\ v?([0-9]+)\. ]]; then
+      yqMajor="${BASH_REMATCH[1]}"
+    else
       echo "
-      ERROR - this script requires yq v4+, but you have v$yqVersion
+      ERROR - this script requires mikefarah yq v4+, but 'yq --version' printed something unrecognised:
+
+      $yqVersionOutput
+
+      Install with:
+
+      sudo bash -c \"wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq\"
+
+      "
+      exit 1
+    fi
+    if (( yqMajor < 4 )); then
+      echo "
+      ERROR - this script requires yq v4+, but you have v$yqMajor ('$yqVersionOutput')
 
       Upgrade with:
 

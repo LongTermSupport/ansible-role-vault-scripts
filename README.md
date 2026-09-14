@@ -50,6 +50,7 @@ ln -s ../roles/lts.vault-scripts/shellscripts/ shellscripts/vault
 
 - `ansible-vault` (comes with Ansible)
 - `yq` ([mikefarah/yq](https://github.com/mikefarah/yq)) for YAML parsing
+- `fzf` for the interactive `browseSecrets.bash` picker (its `--list`, `--get` and `--all` modes need no fzf)
 - `ansible.cfg` in your project root
 - An environment directory structure, e.g. `environment/dev/`, `environment/prod/`
 - `*.secret` in your `.gitignore` (vault password files must never be committed)
@@ -234,12 +235,28 @@ ssl_verify_client on;
 
 ### Viewing Secrets
 
-| Script                    | Purpose                                                          |
-| ------------------------- | ---------------------------------------------------------------- |
-| `dumpGroupSecrets.bash`   | Display decrypted group_vars secrets                             |
-| `dumpSecretsInFiles.bash` | Display decrypted secrets from arbitrary files (host_vars, etc.) |
+| Script                    | Purpose                                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------------------- |
+| `browseSecrets.bash`      | Explore every vaulted variable of an environment in `fzf`, copy one, or dump a selection |
+| `dumpGroupSecrets.bash`   | Display decrypted group_vars secrets                                                     |
+| `dumpSecretsInFiles.bash` | Display decrypted secrets from arbitrary files (host_vars, etc.)                         |
 
 ```bash
+# Explore: every `!vault` variable under environment/dev/ (group_vars AND host_vars, any
+# depth) with a live decrypted preview. ENTER on one row copies it to the clipboard
+# (wl-copy / xclip / xsel / pbcopy, auto-detected; only a notice reaches stdout).
+# TAB-select several and ENTER dumps them as a blob.
+bash shellscripts/vault/browseSecrets.bash dev
+
+# Everything in the environment as one blob (name, file, value), no picker
+bash shellscripts/vault/browseSecrets.bash --all dev
+
+# One value, exactly, on stdout (the vault_ prefix is optional; --file pins a duplicate)
+bash shellscripts/vault/browseSecrets.bash --get db_password dev
+
+# Which variables exist, and where
+bash shellscripts/vault/browseSecrets.bash --list dev
+
 # View all group_vars secrets for dev
 bash shellscripts/vault/dumpGroupSecrets.bash dev
 

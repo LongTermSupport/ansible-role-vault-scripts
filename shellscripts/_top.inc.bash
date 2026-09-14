@@ -165,9 +165,10 @@ $(hostname 2>/dev/null || echo 'no hostname set') $0 $*
 "
 fi
 
-# assumes scriptDir is shellscripts/vault
-#readonly projectDir="$(dirname "$( dirname "$scriptDir")")"
-projectDir="$(findAnsibleCfgDir)"
+# The project is the nearest ansible.cfg above the script's REAL location (scripts cd into
+# scriptDir first). VAULT_SCRIPTS_PROJECT_DIR overrides that discovery, which is what lets a
+# test drive these scripts against a throwaway project root instead of the live one.
+projectDir="${VAULT_SCRIPTS_PROJECT_DIR:-$(findAnsibleCfgDir)}"
 readonly projectDir
 
 if [[ ! -f $projectDir/ansible.cfg ]]; then

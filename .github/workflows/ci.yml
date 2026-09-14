@@ -19,6 +19,24 @@ jobs:
       - name: Run Molecule tests
         uses: robertdebock/molecule-action@2.1.0
 
+  unit-tests:
+    name: Script unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install ansible-vault and yq
+        run: |
+          pipx install ansible-core
+          sudo wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          sudo chmod 0755 /usr/local/bin/yq
+      - name: Run every tests/test-*.bash
+        run: |
+          set -euo pipefail
+          for t in tests/test-*.bash; do
+            echo "==> $t"
+            bash "$t"
+          done
+
   shellcheck:
     name: Shellcheck
     runs-on: ubuntu-latest

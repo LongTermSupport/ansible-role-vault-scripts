@@ -50,7 +50,15 @@ fi
 #
 # Deliberately NOT auto-fixed. A silent chmod would hide the real question —
 # who could already read it — and make an exposure look like a non-event.
-vaultSecretsMode="$(stat -c '%a' "$vaultSecretsPath")"
+#
+# `-L` because the mode that matters is the one on the file the passphrase is
+# actually read from. Without it stat reports the SYMLINK's own mode, which is
+# always 777, so every script refused on any layout that reaches the passphrase
+# through a link — a git worktree seeded with links to the main checkout being
+# the case that found this. The `-f` test above already follows the link, so
+# without `-L` the two adjacent checks disagreed about what the path meant, and
+# a dangling link is still rejected there before reaching this line.
+vaultSecretsMode="$(stat -L -c '%a' "$vaultSecretsPath")"
 if ((8#$vaultSecretsMode & 8#077)); then
   cat >&2 <<ERRMSG
 

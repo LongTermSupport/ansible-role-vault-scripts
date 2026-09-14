@@ -49,11 +49,77 @@ ln -s ../roles/lts.vault-scripts/shellscripts/ shellscripts/vault
 ## Prerequisites
 
 - `ansible-vault` (comes with Ansible)
-- `yq` ([mikefarah/yq](https://github.com/mikefarah/yq)) for YAML parsing
+- **`yq` v4 or newer** — [mikefarah/yq](https://github.com/mikefarah/yq), *not* the
+  unrelated Python `yq`. Every `yq` call in these scripts is v4 syntax. See
+  [Installing yq](#installing-yq) below, which matters more than it looks.
 - `fzf` for the interactive `browseSecrets.bash` picker (its `--list`, `--get` and `--all` modes need no fzf)
 - `ansible.cfg` in your project root
 - An environment directory structure, e.g. `environment/dev/`, `environment/prod/`
 - `*.secret` in your `.gitignore` (vault password files must never be committed)
+
+### Installing yq
+
+`assertYqInstalled` refuses anything that is not mikefarah yq v4+, and names what it
+found, so a wrong `yq` fails immediately rather than producing wrong YAML. Two things
+make that failure more likely than it sounds, and both are worth designing around if you
+install `yq` from Ansible.
+
+**A `creates:` guard never upgrades.** The obvious install task is a `wget` guarded by
+`creates: /usr/bin/yq`, which is correct for a fresh host and does nothing at all on one
+that already has yq — so a host carrying v3 from an older run keeps v3 for ever, and the
+play reports success every time. **And a download that dies partway leaves a truncated
+file at that path**, which the same `creates:` then skips on every future run: an install
+that failed once and never retries.
+
+Neither shows up until somebody needs a secret. Assert the version after installing, so
+both surface at provision time:
+
+```yaml
+- name: Install yq
+  become: true
+  ansible.builtin.shell: |
+    set -euo pipefail
+    wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+    chmod +x /usr/bin/yq
+  args:
+    executable: /bin/bash
+    creates: /usr/bin/yq
+
+# Also the probe for a truncated binary: a broken yq cannot answer --version.
+- name: Probe the installed yq version
+  become: true
+  ansible.builtin.command: yq --version
+  register: yq_version
+  changed_when: false
+
+# v4 OR NEWER, matching assertYqInstalled, which rejects `< 4` rather than pinning to 4.
+# Since the install above fetches `latest`, a check pinned to exactly v4 would fail
+# provisioning the day v5 ships, on a host these scripts would run on perfectly.
+#
+# regex_replace, not regex_search: search returns None when nothing matches and `| first`
+# on None raises a templating error instead of failing the assert, so the check would
+# blow up rather than report. replace returns the input unchanged, which `| int` renders
+# 0, and 0 fails the comparison cleanly.
+- name: Assert yq is a major version the vault scripts support
+  ansible.builtin.assert:
+    that:
+      - yq_major | int >= 4
+    fail_msg: |
+      yq reports: {{ yq_version.stdout | default('nothing') }}
+
+      These scripts need mikefarah yq v4 or newer. Remove the old binary so the
+      install task runs again:
+
+          sudo rm /usr/bin/yq
+    success_msg: "yq is v{{ yq_major }}, which the vault scripts support (v4+)"
+  vars:
+    yq_major: "{{ yq_version.stdout | regex_replace('^.*version v?([0-9]+)[.].*$', '\\1') }}"
+```
+
+Version strings differ enough between the candidates that the major number is the only
+reliable thing to compare: mikefarah v3 prints `yq version 3.4.1`, v4 prints
+`yq (https://github.com/mikefarah/yq/) version v4.53.3`, and the Python `yq` prints
+`yq 3.2.3` — no `version` token at all, so it reduces to `0` and is rejected.
 
 ## Quick Start
 

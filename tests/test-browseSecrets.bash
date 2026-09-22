@@ -111,6 +111,112 @@ check "--complete: …and no further once the matches diverge" "host_to" "$("$sc
 check "--complete: no hit leaves the query alone" "zzz" "$("$script" --complete zzz dev)"
 check "--complete: the same name in two files is one candidate" "vault_api_key" "$("$script" --complete api dev)"
 
+# --guides / --guide: a Markdown guide with {{ vault_… }} placeholders, printed with the values
+# in place. Default location: environment/<env>/guides/<name>.md.
+mkdir -p "$work/environment/dev/guides"
+cat > "$work/environment/dev/guides/db-login.md" <<'GUIDE'
+# Log in to the database
+
+1. Connect as `app`.
+2. Password: `{{ vault_db_password }}`
+3. Token for the API: {{ vault_host_token }} (same as `{{vault_host_token}}`)
+GUIDE
+cat > "$work/environment/dev/guides/no-secrets.md" <<'GUIDE'
+# Nothing vaulted here
+
+Plain steps only.
+GUIDE
+
+out=$("$script" --guides dev)
+check "--guides: lists every guide, name then title" "1" "$(grep -c -E '^db-login +Log in to the database$' <<<"$out")"
+check "--guides: …including one with no placeholders" "1" "$(grep -c -E '^no-secrets +Nothing vaulted here$' <<<"$out")"
+
+out=$("$script" --guide db-login dev)
+check "--guide: every placeholder is replaced by the decrypted value" "1" "$(grep -c -F "2. Password: \`$secretValue\`" <<<"$out")"
+check "--guide: the same placeholder twice on one line, with or without inner spaces, is replaced twice" "1" "$(grep -c -F "3. Token for the API: tok-two (same as \`tok-two\`)" <<<"$out")"
+check "--guide: no placeholder survives" "0" "$(grep -c -F '{{' <<<"$out")"
+check "--guide: the rest of the guide is untouched" "1" "$(grep -c -x '# Log in to the database' <<<"$out")"
+
+out=$("$script" --guide no-secrets dev)
+check "--guide: a guide with no placeholders is printed as-is" "1" "$(grep -c -x 'Plain steps only.' <<<"$out")"
+
+# A multi-line value (a key) lands intact.
+printf -- '-----BEGIN KEY-----\nline-one\nline-two\n-----END KEY-----' > "$work/key.txt"
+touch "$work/environment/dev/group_vars/all/vault_key.yml"
+"$roleScripts/createVaultedDataFromFile.bash" vault_ssh_key "$work/key.txt" environment/dev/group_vars/all/vault_key.yml dev > /dev/null
+cat > "$work/environment/dev/guides/key.md" <<'GUIDE'
+Save this as id_key:
+
+{{ vault_ssh_key }}
+GUIDE
+out=$("$script" --guide key dev)
+check "--guide: a multi-line value is substituted whole" "1" "$(grep -c -x 'line-two' <<<"$out")"
+check "--guide: …with its first and last lines" "2" "$(grep -c -E '^-----(BEGIN|END) KEY-----$' <<<"$out")"
+
+# A placeholder naming nothing vaulted: an error, and NOTHING on stdout.
+cat > "$work/environment/dev/guides/broken.md" <<'GUIDE'
+# Broken
+Password: {{ vault_db_password }}
+Missing: {{ vault_nonexistent }}
+GUIDE
+rc=0; out=$("$script" --guide broken dev 2>"$work/broken.err") || rc=$?
+check "--guide: an unresolvable placeholder fails" "1" "$rc"
+check "--guide: …naming the placeholder" "1" "$(grep -c 'vault_nonexistent' "$work/broken.err")"
+check "--guide: …and prints nothing at all (no half-rendered guide)" "" "$out"
+
+# A placeholder naming an ambiguous variable (vault_api_key lives in two files) fails too.
+cat > "$work/environment/dev/guides/ambiguous.md" <<'GUIDE'
+Key: {{ vault_api_key }}
+GUIDE
+rc=0; out=$("$script" --guide ambiguous dev 2>"$work/ambiguous.err") || rc=$?
+check "--guide: an ambiguous placeholder fails" "1" "$rc"
+check "--guide: …naming both files" "2" "$(grep -c -E 'vault_api.yml|web2.yml' "$work/ambiguous.err")"
+check "--guide: …and prints nothing" "" "$out"
+
+# --check: every placeholder resolves to exactly one vaulted variable, decided WITHOUT
+# decrypting. Two proofs: a stand-in ansible-vault on PATH that records any call, and a second
+# project root holding the same environment but no vault password file at all (a CI checkout).
+fakeBin="$work/fakebin"
+mkdir -p "$fakeBin"
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s/vault-calls"\nexit 1\n' "$work" > "$fakeBin/ansible-vault"
+chmod 0755 "$fakeBin/ansible-vault"
+out=$(PATH="$fakeBin:$PATH" "$script" --guide db-login --check dev)
+check "--guide --check: passes, counting the resolved placeholders" "1" "$(grep -c -E '^db-login: 2 placeholders resolve' <<<"$out")"
+check "--guide --check: …without ever calling ansible-vault" "0" "$(if [[ -f "$work/vault-calls" ]]; then wc -l < "$work/vault-calls"; else echo 0; fi)"
+noPass="$(mktemp -d)"
+cp -r "$work/environment" "$noPass/environment"
+printf '[defaults]\n' > "$noPass/ansible.cfg"
+out=$(VAULT_SCRIPTS_PROJECT_DIR="$noPass" "$script" --guide db-login --check dev)
+check "--guide --check: passes in a project root with no vault password file" "1" "$(grep -c -E '^db-login: 2 placeholders resolve' <<<"$out")"
+out=$(VAULT_SCRIPTS_PROJECT_DIR="$noPass" "$script" --guides dev)
+check "--guides: lists without a vault password file" "1" "$(grep -c -E '^db-login ' <<<"$out")"
+out=$(VAULT_SCRIPTS_PROJECT_DIR="$noPass" "$script" --list dev)
+check "--list: lists without a vault password file" "1" "$(grep -c -E '^vault_db_password ' <<<"$out")"
+rm -rf "$noPass"
+rc=0; out=$("$script" --guide broken --check dev 2>"$work/check.err") || rc=$?
+check "--guide --check: fails on an unresolvable placeholder" "1" "$rc"
+check "--guide --check: …naming it" "1" "$(grep -c 'vault_nonexistent' "$work/check.err")"
+rc=0; out=$("$script" --guide ambiguous --check dev 2>"$work/check2.err") || rc=$?
+check "--guide --check: fails on an ambiguous placeholder" "1" "$rc"
+out=$("$script" --guide no-secrets --check dev)
+check "--guide --check: a guide with no placeholders passes, saying so" "1" "$(grep -c -E '^no-secrets: 0 placeholders' <<<"$out")"
+
+rc=0; err=$("$script" --guide nope dev 2>&1 >/dev/null) || rc=$?
+check "--guide: an unknown guide fails" "1" "$rc"
+check "--guide: …naming the directory it looked in" "1" "$(grep -c -F 'environment/dev/guides' <<<"$err")"
+
+# VAULT_SCRIPTS_GUIDES_DIR relocates the directory; <env> in it is the environment name.
+mkdir -p "$work/docs/guides/dev"
+printf '# Elsewhere\n\n%s\n' 'Token: {{ vault_host_token }}' > "$work/docs/guides/dev/moved.md"
+out=$(VAULT_SCRIPTS_GUIDES_DIR='docs/guides/<env>' "$script" --guides dev)
+check "VAULT_SCRIPTS_GUIDES_DIR: --guides reads the relocated directory" "1" "$(grep -c -E '^moved +Elsewhere$' <<<"$out")"
+check "VAULT_SCRIPTS_GUIDES_DIR: …and not the default one" "0" "$(grep -c 'db-login' <<<"$out")"
+out=$(VAULT_SCRIPTS_GUIDES_DIR='docs/guides/<env>' "$script" --guide moved dev)
+check "VAULT_SCRIPTS_GUIDES_DIR: --guide renders from there" "1" "$(grep -c -x 'Token: tok-two' <<<"$out")"
+
+rc=0; err=$("$script" --guides --check dev 2>&1 >/dev/null) || rc=$?
+check "--check without --guide is a usage error" "1" "$rc"
+
 rc=0; err=$("$script" --get 2>&1 >/dev/null) || rc=$?
 check "--get with no name is a usage error" "1" "$rc"
 

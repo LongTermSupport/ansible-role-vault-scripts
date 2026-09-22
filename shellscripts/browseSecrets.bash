@@ -6,6 +6,21 @@
 #   browseSecrets.bash --list [specifiedEnv]                every vaulted variable and its file
 #   browseSecrets.bash --all [specifiedEnv]                 every secret decrypted, as one blob
 #   browseSecrets.bash --get <name> [--file <path>] [env]   one secret, exactly, on stdout
+#   browseSecrets.bash --guides [specifiedEnv]              every guide the environment has
+#   browseSecrets.bash --guide <name> [--check] [env]       a guide, its secrets filled in
+#
+# A GUIDE is a Markdown file the operator asks for by name — a whole procedure (a login, an
+# onboarding, a recovery) written once, with `{{ vault_name }}` wherever a secret belongs.
+# `--guide <name>` prints it with every placeholder replaced by that variable's decrypted
+# value, so the procedure arrives in one human-readable piece instead of a document plus a
+# separate fetch per secret. Every placeholder is resolved BEFORE anything is printed: a
+# name that is not vaulted in the environment, or is vaulted in more than one file, is an
+# error and stdout stays empty, never a half-rendered guide. `--check` resolves the
+# placeholders without decrypting — no vault password needed, so a CI checkout can prove
+# every guide's placeholders name real variables. Guides live in
+# environment/<env>/guides/<name>.md; VAULT_SCRIPTS_GUIDES_DIR relocates that (a path
+# relative to the project, or absolute, in which `<env>` stands for the environment name).
+# `--guides` lists each guide's name and its first `# ` heading.
 #
 # The picker lists every `<name>: !vault |` under environment/<env>/ (group_vars AND
 # host_vars, at any depth) with a live decrypted preview. Typing filters by plain substring
@@ -23,6 +38,8 @@
 #                             chosen rows (default: fzf --multi with the preview)
 #   BROWSE_SECRETS_CLIPBOARD  the clipboard command fed the value on stdin; `none` disables
 #                             (default: auto-detect)
+#   VAULT_SCRIPTS_GUIDES_DIR  where guides live; `<env>` is replaced by the environment
+#                             (default: environment/<env>/guides)
 #
 # Nothing is written anywhere: values are decrypted to stdout or to the clipboard only.
 #
@@ -49,6 +66,9 @@ usage() {
   $(basename "$0") --all [specifiedEnv]                 every secret decrypted, as one blob
   $(basename "$0") --get <name> [--file <path>] [env]   one secret on stdout
   $(basename "$0") --complete <query> [specifiedEnv]    the query completed against the names
+  $(basename "$0") --guides [specifiedEnv]              every guide the environment has
+  $(basename "$0") --guide <name> [--check] [env]       a guide with its secrets filled in
+                                                        (--check: prove the placeholders only)
 
   specifiedEnv defaults to $defaultEnv.
 
@@ -60,11 +80,19 @@ mode="pick"
 getName=""
 pinFile=""
 completeQuery=""
+guideName=""
+checkOnly=""
 positional=()
 while (( $# > 0 )); do
   case "$1" in
     --list) mode="list"; shift ;;
     --all) mode="all"; shift ;;
+    --guides) mode="guides"; shift ;;
+    --guide)
+      mode="guide"
+      [[ -n "${2:-}" && "${2:-}" != --* ]] || usage
+      guideName="$2"; shift 2 ;;
+    --check) checkOnly=1; shift ;;
     --get)
       mode="get"
       [[ -n "${2:-}" && "${2:-}" != --* ]] || usage
@@ -83,10 +111,126 @@ while (( $# > 0 )); do
   esac
 done
 (( ${#positional[@]} <= 1 )) || usage
+[[ -z "$checkOnly" || "$mode" == "guide" ]] || usage
 readonly specifiedEnv="${positional[0]:-$defaultEnv}"
-source ./_vault.inc.bash
+
+# The modes that only READ NAMES (--list, --guides, --complete, --guide --check) never touch
+# the vault, so they do not go through _vault.inc.bash, which refuses to load without the
+# vault password file. That is what lets a CI checkout — no password, by design — list an
+# environment and prove every guide's placeholders. The environment discovery below is the
+# same one _vault.inc.bash performs.
+if [[ "$mode" == "list" || "$mode" == "guides" || "$mode" == "complete" || ( "$mode" == "guide" && -n "$checkOnly" ) ]]; then
+  source ./_vault.functions.inc.bash
+  readarray -t environmentArray <<<"$(find "$projectDir/environment/" -maxdepth 1 -mindepth 1 -type d -exec basename {} \;)"
+  finalSpecifiedEnv="$specifiedEnv"
+  assertValidEnv "$finalSpecifiedEnv"
+else
+  source ./_vault.inc.bash
+fi
 
 readonly envDir="$projectDir/environment/$finalSpecifiedEnv"
+
+# guidesDir: where this environment's guides live (see VAULT_SCRIPTS_GUIDES_DIR above).
+guidesDir() {
+  local dir="${VAULT_SCRIPTS_GUIDES_DIR:-environment/<env>/guides}"
+  dir="${dir//<env>/$finalSpecifiedEnv}"
+  [[ "$dir" == /* ]] || dir="$projectDir/$dir"
+  printf '%s\n' "$dir"
+}
+
+# guideTitle <file>: the first `# ` heading, or nothing.
+guideTitle() {
+  awk '/^# / { sub(/^# +/, ""); print; exit }' "$1"
+}
+
+# listGuides: every <name>.md in the guides directory as "name<TAB>title", sorted by name.
+listGuides() {
+  local dir file name
+  dir="$(guidesDir)"
+  [[ -d "$dir" ]] || return 0
+  find "$dir" -maxdepth 1 -type f -name '*.md' -print0 | sort -z | while IFS= read -r -d '' file; do
+    name="$(basename "$file" .md)"
+    printf '%s\t%s\n' "$name" "$(guideTitle "$file")"
+  done
+}
+
+# guideFile <name>: the guide's path, or an error naming where it was looked for.
+guideFile() {
+  local dir file
+  dir="$(guidesDir)"
+  file="$dir/$1.md"
+  if [[ ! -f "$file" ]]; then
+    error "no guide named '$1' in $dir (try --guides)"
+    exitFromFunction
+  fi
+  printf '%s\n' "$file"
+}
+
+# guidePlaceholders <file>: every distinct name inside a `{{ … }}` placeholder, one per line.
+guidePlaceholders() {
+  awk '{
+    line = $0
+    while (match(line, /\{\{[[:space:]]*[A-Za-z0-9_]+[[:space:]]*\}\}/)) {
+      ph = substr(line, RSTART + 2, RLENGTH - 4)
+      gsub(/[[:space:]]/, "", ph)
+      print ph
+      line = substr(line, RSTART + RLENGTH)
+    }
+  }' "$1" | sort -u
+}
+
+# substitutePlaceholder <name>: stdin → stdout with every `{{ name }}` (any inner spacing)
+# replaced by $VALUE. The value travels in the environment and is spliced by substr, never
+# by a regex replacement, so a value holding `&`, `\` or newlines lands byte-for-byte.
+substitutePlaceholder() {
+  NAME="$1" awk '
+    BEGIN { re = "\\{\\{[[:space:]]*" ENVIRON["NAME"] "[[:space:]]*\\}\\}" }
+    {
+      line = $0; out = ""
+      while (match(line, re)) {
+        out = out substr(line, 1, RSTART - 1) ENVIRON["VALUE"]
+        line = substr(line, RSTART + RLENGTH)
+      }
+      print out line
+    }'
+}
+
+# renderGuide <name>: resolve every placeholder first (a failure exits with nothing printed),
+# then print the guide with the values in place. With checkOnly set, report the resolution
+# and decrypt nothing.
+renderGuide() {
+  local file names name row varName varFile content
+  local -a resolvedNames=() resolvedVars=() resolvedFiles=()
+  file="$(guideFile "$1")"
+  names="$(guidePlaceholders "$file")"
+  while IFS= read -r name; do
+    [[ -n "$name" ]] || continue
+    row="$(resolveRow "$name")"
+    IFS=$'\t' read -r varName varFile <<<"$row"
+    resolvedNames+=("$name")
+    resolvedVars+=("$varName")
+    resolvedFiles+=("$varFile")
+  done <<<"$names"
+  if [[ -n "$checkOnly" ]]; then
+    if (( ${#resolvedNames[@]} == 0 )); then
+      printf '%s: 0 placeholders\n' "$1"
+    else
+      printf '%s: %d placeholders resolve to vaulted variables of environment/%s:\n' "$1" "${#resolvedNames[@]}" "$finalSpecifiedEnv"
+      local i
+      for i in "${!resolvedNames[@]}"; do
+        printf '    %s  (%s)\n' "${resolvedNames[$i]}" "${resolvedFiles[$i]}"
+      done
+    fi
+    return 0
+  fi
+  content="$(cat "$file")"
+  local i value
+  for i in "${!resolvedNames[@]}"; do
+    value="$(decryptOne "${resolvedVars[$i]}" "${resolvedFiles[$i]}")"
+    content="$(VALUE="$value" substitutePlaceholder "${resolvedNames[$i]}" <<<"$content")"
+  done
+  printf '%s\n' "$content"
+}
 
 # rows: every `<name>: !vault` at column 0 under the environment, as "name<TAB>relative-file".
 listRows() {
@@ -201,6 +345,12 @@ case "$mode" in
     ;;
   complete)
     completeQuery "$completeQuery"
+    ;;
+  guides)
+    listGuides | alignedRows | cut -f3
+    ;;
+  guide)
+    renderGuide "$guideName"
     ;;
   get)
     row="$(resolveRow "$getName" "$pinFile")"

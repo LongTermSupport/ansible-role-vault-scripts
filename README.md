@@ -301,11 +301,12 @@ ssl_verify_client on;
 
 ### Viewing Secrets
 
-| Script                    | Purpose                                                                                  |
-| ------------------------- | ---------------------------------------------------------------------------------------- |
-| `browseSecrets.bash`      | Explore every vaulted variable of an environment in `fzf`, copy one, or dump a selection |
-| `dumpGroupSecrets.bash`   | Display decrypted group_vars secrets                                                     |
-| `dumpSecretsInFiles.bash` | Display decrypted secrets from arbitrary files (host_vars, etc.)                         |
+| Script                       | Purpose                                                                                  |
+| ---------------------------- | ---------------------------------------------------------------------------------------- |
+| `browseSecrets.bash`         | Explore every vaulted variable of an environment in `fzf`, copy one, or dump a selection |
+| `browseSecrets.bash --guide` | Print a Markdown guide with its `{{ vault_… }}` placeholders decrypted in place          |
+| `dumpGroupSecrets.bash`      | Display decrypted group_vars secrets                                                     |
+| `dumpSecretsInFiles.bash`    | Display decrypted secrets from arbitrary files (host_vars, etc.)                         |
 
 ```bash
 # Explore: every `!vault` variable under environment/dev/ (group_vars AND host_vars, any
@@ -324,6 +325,17 @@ bash shellscripts/vault/browseSecrets.bash --get db_password dev
 
 # Which variables exist, and where
 bash shellscripts/vault/browseSecrets.bash --list dev
+
+# GUIDES: a whole procedure written once as environment/dev/guides/<name>.md, with
+# `{{ vault_name }}` wherever a secret belongs. --guide prints it with every placeholder
+# decrypted in place; every placeholder is resolved before anything prints, so an unknown or
+# ambiguous name is an error with nothing on stdout. --guides lists them (name and first
+# heading). --check proves the placeholders name real vaulted variables WITHOUT decrypting,
+# so it runs where no vault password exists (CI). VAULT_SCRIPTS_GUIDES_DIR relocates the
+# directory (`<env>` in it is replaced by the environment name).
+bash shellscripts/vault/browseSecrets.bash --guides dev
+bash shellscripts/vault/browseSecrets.bash --guide db-login dev
+bash shellscripts/vault/browseSecrets.bash --guide db-login --check dev
 
 # View all group_vars secrets for dev
 bash shellscripts/vault/dumpGroupSecrets.bash dev

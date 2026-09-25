@@ -44,12 +44,14 @@ function writeEncrypted(){
     return 0;
   fi
 
-  if [[ ! -f "$_outputToFile" ]]; then
-    printf "
-  ##########################################################################
-  # Vault File Created with %s at %s
-  ##########################################################################
-  \n" "$(basename "$0")" "$(date)" >"$_outputToFile"
+  # `! -s`, not `! -f`: getProjectFilePathCreateIfNotExists has already touched a new file, so
+  # it exists but is empty. The `---` document start is required by yamllint and ansible-lint.
+  if [[ ! -s "$_outputToFile" ]]; then
+    printf -- "---
+##########################################################################
+# Vault File Created with %s at %s
+##########################################################################
+" "$(basename "$0")" "$(date)" >"$_outputToFile"
   fi
   ensureFileEndsInNewline "$_outputToFile"
 

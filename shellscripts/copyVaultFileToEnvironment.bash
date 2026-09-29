@@ -112,25 +112,14 @@ for vaultFilePath in "${@:3}"; do
     valuesDecrypted+=("$decrypted")
   done
 
-  # Debug output
-  echo "
-  ##########################################################################
-  Data Ready for Copying:
-  ##########################################################################
-  "
+  # Re-encrypt for the destination and write. Decrypted values are never printed and this
+  # loop is never traced, so no secret reaches the terminal scrollback or a captured log.
   for i in "${!params[@]}"; do
-    printf "\n\nParam: %s\nDecrypted:\n%s\n\n" "${params[i]}" "${valuesDecrypted[$i]}"
-  done
-
-  # loop over params and write encrypted to new file
-  for i in "${!params[@]}"; do
-    set -x
     param="${params[$i]%%[[:space:]]}"
     secret="${valuesDecrypted[i]}"
-    encrypted="$(echo -n "$secret" | ansible-vault encrypt_string \
+    encrypted="$(printf '%s' "$secret" | ansible-vault encrypt_string \
       --vault-id="$otherEnv@$otherSecretPath" \
       --stdin-name "$param")"
-    set +x
     writeEncrypted "$encrypted" "$param" "$otherVaultFilePath"
   done
 

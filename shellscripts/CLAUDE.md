@@ -136,6 +136,7 @@ All scripts should implement these validations consistently:
 - `createVaultedPassword.bash` - Generate and encrypt random passwords
 - `createVaultedString.bash` - Encrypt specific string values (passed as an argument)
 - `createVaultedStringFromStdin.bash` - Encrypt a secret read from stdin (never an argument; pipe a token straight in so plaintext never hits argv/process list/output)
+- `createVaultedStringInteractive.bash` - Fully interactive front end to the stdin script for a human holding a secret: asks for every argument that was not preset (variable name, vault file, environment unless the path names one, replace), then ALWAYS prompts for the secret with echo off. Needs a terminal on stdin. It sources `_top.inc.bash`, which narrows `IFS` to newline/tab, so it joins arrays with a local `IFS` and trims answers itself
 - `createVaultedPreSharedKey.bash` - Generate and encrypt PSKs
 
 ### SSH Key Management

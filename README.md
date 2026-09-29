@@ -159,12 +159,13 @@ export vaultScriptsDefaultEnv=prod
 
 ### Password and String Encryption
 
-| Script                              | Purpose                                                                                                                                                    |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `createVaultedPassword.bash`        | Generate a random password, encrypt it, assign to a variable                                                                                               |
-| `createVaultedString.bash`          | Encrypt a specific string value (passed as an argument) and assign to a variable                                                                           |
-| `createVaultedStringFromStdin.bash` | Encrypt a secret **read from stdin** (never an argument) — pipe a token straight in so the plaintext never hits argv, the process list, or terminal output |
-| `createVaultedPreSharedKey.bash`    | Generate and encrypt a pre-shared key                                                                                                                      |
+| Script                                | Purpose                                                                                                                                                                                            |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `createVaultedPassword.bash`          | Generate a random password, encrypt it, assign to a variable                                                                                                                                       |
+| `createVaultedString.bash`            | Encrypt a specific string value (passed as an argument) and assign to a variable                                                                                                                   |
+| `createVaultedStringFromStdin.bash`   | Encrypt a secret **read from stdin** (never an argument) — pipe a token straight in so the plaintext never hits argv, the process list, or terminal output                                         |
+| `createVaultedStringInteractive.bash` | **Fully interactive**: asks for the variable name, vault file, environment and whether to replace (anything preset is skipped), then **always prompts for the secret with echo off** and vaults it |
+| `createVaultedPreSharedKey.bash`      | Generate and encrypt a pre-shared key                                                                                                                                                              |
 
 **Examples:**
 
@@ -189,6 +190,15 @@ bash shellscripts/vault/createVaultedString.bash \
 gh auth token | bash shellscripts/vault/createVaultedStringFromStdin.bash \
     vault_github_token \
     ./environment/prod/group_vars/all/vault_github.yml
+
+# A human holding a secret (pasted from a dashboard): be asked for everything,
+# including the secret itself, with echo off. Nothing to remember, nothing in history.
+bash shellscripts/vault/createVaultedStringInteractive.bash
+
+# Preset what you already know; the secret is still always asked for.
+bash shellscripts/vault/createVaultedStringInteractive.bash \
+    vault_api_token \
+    ./environment/prod/group_vars/all/vault_tokens.yml
 ```
 
 ### SSH Key Management

@@ -5,14 +5,37 @@ on:
   push:
     branches:
       - master
+    # A push of documentation alone starts no run: no job reads Markdown (the browseSecrets
+    # tests write their own guides). Instruction Markdown stays in.
+    paths:
+      - "**"
+      - "!**.md"
+      - "!docs/**"
+      - "**/CLAUDE.md"
+      - "**/AGENTS.md"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  actions-qa-ci:
+    name: actions-qa-ci
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the workflows with actions-qa-ci
+        uses: LongTermSupport/actions-qa-ci@c692fb40e93f3ad63d59adf78a86d1a1d0111449  # v0.1.1
+
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
         with:
           path: "${{ github.repository }}"
 
@@ -23,7 +46,7 @@ jobs:
     name: Script unit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
       - name: Install ansible-vault and yq
         run: |
           pipx install ansible-core
@@ -41,7 +64,7 @@ jobs:
     name: Shellcheck
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v7
     # XXX: we ignore the bash files that are included during execution from the list
     # files passed to shellcheck. See https://unix.stackexchange.com/questions/164025/exclude-one-pattern-from-glob-match
     # This still allows shellcheck to analyze them, but we don't pass them to shellcheck

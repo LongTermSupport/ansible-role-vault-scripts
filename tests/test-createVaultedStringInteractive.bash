@@ -144,7 +144,7 @@ check "too many arguments shows usage" "1" "$rc"
 dialogue -- "Variable name" vault_zz "Vault file to write to" "$rel" \
     "Replace the variable" n "Proceed and ask" y "input hidden" "$secret"
 check "a full dialogue succeeds" "0" "$code"
-check "…writes the variable as a !vault block" "1" "$(countMatching '^vault_zz: !vault \|$' "$file")"
+check "…writes the variable as a !vault block" "1" "$(countMatching '^vault_zz: !vault [|]$' "$file")"
 check "…the environment is detected, not asked" "0" "$(countFixed 'Environment (' "$out")"
 check "…the plaintext is not in the vault file" "0" "$(countFixed "$secret" "$file")"
 check "…the plaintext is not printed" "0" "$(countFixed "$secret" "$out")"
@@ -158,7 +158,7 @@ check "…presets are not asked for again" "0" "$(countFixed 'Variable name' "$o
 
 dialogue --replace vault_zz "$rel" -- "Proceed and ask" y "input hidden" "${secret}-rotated"
 check "--replace rotates the variable" "0" "$code"
-check "…leaving exactly one definition" "1" "$(countMatching '^vault_zz: !vault \|$' "$file")"
+check "…leaving exactly one definition" "1" "$(countMatching '^vault_zz: !vault [|]$' "$file")"
 check "…and never asks about replacing" "0" "$(countFixed 'Replace the variable' "$out")"
 
 # A blank vault file prints the ciphertext instead, and then the environment is asked.

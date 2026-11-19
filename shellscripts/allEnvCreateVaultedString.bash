@@ -1,5 +1,6 @@
 #!/bin/bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
+scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly scriptDir
 cd "$scriptDir"
 # Set up bash
 source ./_allEnv.top.inc.bash
@@ -10,7 +11,7 @@ USAGE:
 
 This script will encrypt the same string for each environment and add it to environment-specific files.
 
-Usage: ./$(basename $0) [options] [varname] [string] [outputToFile with _env_ as env placeholder]
+Usage: ./$(basename "$0") [options] [varname] [string] [outputToFile with _env_ as env placeholder]
 
 Options:
   --preserve-whitespace  Preserve leading and trailing whitespace in the string (default is to trim)
@@ -22,8 +23,8 @@ Please note:
 - This script will replace '_env_' with each available environment name and call createVaultedString.bash for each one
 
 Examples:
-./$(basename $0) vault_api_key 'my-secret-api-key' environment/_env_/group_vars/api/vault_keys.yml
-./$(basename $0) --preserve-whitespace vault_multiline_text '  Text with whitespace  ' environment/_env_/group_vars/api/vault_text.yml
+./$(basename "$0") vault_api_key 'my-secret-api-key' environment/_env_/group_vars/api/vault_keys.yml
+./$(basename "$0") --preserve-whitespace vault_multiline_text '  Text with whitespace  ' environment/_env_/group_vars/api/vault_text.yml
 
 This will encrypt the same string in every environment, replacing '_env_' with 'dev', 'prod', etc.
     "

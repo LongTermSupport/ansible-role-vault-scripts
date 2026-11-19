@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
+scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly scriptDir
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
@@ -14,7 +15,7 @@ This script will encrypt the string you specify, then optionally add it to a vau
 If you are storing a password, consider using ./createVaultedPassword.bash instead
 which will auto generate a long random password
 
-Usage: ./$(basename $0) [options] [varname] [string] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv)
+Usage: ./$(basename "$0") [options] [varname] [string] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv)
 
 Options:
   --preserve-whitespace  Preserve leading and trailing whitespace in the string (default is to trim)
@@ -28,13 +29,13 @@ Please note:
 - If you specify both an environment in the path and the specifiedEnv parameter, they must match
 
 Examples:
-./$(basename $0) vault_github_token 'MySecretValue'
-./$(basename $0) vault_api_key 'abc123xyz' environment/dev/group_vars/api/vault_keys.yml
-./$(basename $0) --preserve-whitespace vault_multiline_text '  Text with whitespace  '
+./$(basename "$0") vault_github_token 'MySecretValue'
+./$(basename "$0") vault_api_key 'abc123xyz' environment/dev/group_vars/api/vault_keys.yml
+./$(basename "$0") --preserve-whitespace vault_multiline_text '  Text with whitespace  '
 # Environment 'prod' is automatically detected from the path:
-./$(basename $0) vault_cloudflare_token 'cf-token-123' environment/prod/group_vars/cloudflare/vault_tokens.yml
+./$(basename "$0") vault_cloudflare_token 'cf-token-123' environment/prod/group_vars/cloudflare/vault_tokens.yml
 # Update existing variable (fails if variable doesn't exist):
-./$(basename $0) --overwrite vault_github_token 'NewTokenValue' environment/dev/group_vars/errorMonitor/vault_error_monitor.yml
+./$(basename "$0") --overwrite vault_github_token 'NewTokenValue' environment/dev/group_vars/errorMonitor/vault_error_monitor.yml
 
 "
   exit 1

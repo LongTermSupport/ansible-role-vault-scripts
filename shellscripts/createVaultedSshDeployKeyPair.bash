@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
+scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly scriptDir
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
@@ -13,7 +14,7 @@ This script will generate an SSH key pair with no password protection.
 You must only use these keys for read only deploy keys (eg read only access to github repo for deployment).
 You must never use an unprotected key for SSH access to servers.
 
-Usage: ./$(basename $0) [varname_prefix] [email] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv)
+Usage: ./$(basename "$0") [varname_prefix] [email] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv)
 
 Please note:
 - The varname_prefix must start with 'vault_'
@@ -22,10 +23,10 @@ Please note:
 - If you specify both an environment in the path and the specifiedEnv parameter, they must match
 
 Examples:
-./$(basename $0) vault_github_deploy user@example.com
-./$(basename $0) vault_github_deploy user@example.com environment/dev/group_vars/containers/vault_github_deploy_keys.yml
+./$(basename "$0") vault_github_deploy user@example.com
+./$(basename "$0") vault_github_deploy user@example.com environment/dev/group_vars/containers/vault_github_deploy_keys.yml
 # Environment 'prod' is automatically detected from the path:
-./$(basename $0) vault_gitlab_deploy user@example.com environment/prod/group_vars/containers/vault_github_deploy_keys.yml
+./$(basename "$0") vault_gitlab_deploy user@example.com environment/prod/group_vars/containers/vault_github_deploy_keys.yml
 
 This will generate a private and public key with variables:
 vault_github_deploy
@@ -63,18 +64,18 @@ validateOutputToFile "$outputToFile" "$varname_prefix"
 workDir=/tmp/_keys
 rm -rf $workDir
 mkdir $workDir
-ssh-keygen -t ed25519 -C "$email" -N "" -f $workDir/${varname_prefix}
+ssh-keygen -t ed25519 -C "$email" -N "" -f "$workDir/${varname_prefix}"
 
 # Write Variables
-encryptedPrivKey="$(cat "$workDir/${varname_prefix}" | ansible-vault encrypt_string \
+encryptedPrivKey="$(ansible-vault encrypt_string \
 --vault-id="$finalSpecifiedEnv@$vaultSecretsPath" \
---stdin-name "${varname_prefix}")"
+--stdin-name "${varname_prefix}" < "$workDir/${varname_prefix}")"
 
 writeEncrypted "$encryptedPrivKey" "${varname_prefix}" "$outputToFile"
 
-encryptedPubKey="$(cat "$workDir/${varname_prefix}.pub" | ansible-vault encrypt_string \
+encryptedPubKey="$(ansible-vault encrypt_string \
 --vault-id="$finalSpecifiedEnv@$vaultSecretsPath" \
---stdin-name "${varname_prefix}_pub")"
+--stdin-name "${varname_prefix}_pub" < "$workDir/${varname_prefix}.pub")"
 
 writeEncrypted "$encryptedPubKey" "${varname_prefix}_pub" "$outputToFile"
 

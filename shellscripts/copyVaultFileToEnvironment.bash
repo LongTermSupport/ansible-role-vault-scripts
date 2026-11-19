@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
+scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly scriptDir
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
@@ -14,7 +15,7 @@ Note - #THIS IS A BAD IDEA# in most cases!
 Unless it is truly necessary, you should probably be using ./createPasswordsFromTemplate.bash instead.
 Copying encrypted secrets between environments can reduce security by duplicating sensitive information.
 
-Usage: ./$(basename $0) [sourceEnv] [destEnv] [vaultFilePaths ...]
+Usage: ./$(basename "$0") [sourceEnv] [destEnv] [vaultFilePaths ...]
 
 Parameters:
 - sourceEnv: The source environment (e.g., 'dev', 'prod')
@@ -22,8 +23,8 @@ Parameters:
 - vaultFilePaths: One or more paths to vault files to copy
 
 Examples:
-./$(basename $0) dev prod environment/dev/group_vars/containers/vault_ssl_certs.yml
-./$(basename $0) prod localdev environment/prod/group_vars/containers/vault_cloudflare.yml environment/prod/group_vars/keymaster/vault_cloudflare.yml
+./$(basename "$0") dev prod environment/dev/group_vars/containers/vault_ssl_certs.yml
+./$(basename "$0") prod localdev environment/prod/group_vars/containers/vault_cloudflare.yml environment/prod/group_vars/keymaster/vault_cloudflare.yml
   "
   exit 1
 }
@@ -60,7 +61,7 @@ for vaultFilePath in "${@:3}"; do
   vaultFilePath="$(getFilePath "$vaultFilePath")"
   assertFileInEnv "$vaultFilePath" "$currentEnv"
   assertFilesExist "$vaultFilePath"
-  assertFilesDoNotExist "$(otherVaultPath $vaultFilePath)"
+  assertFilesDoNotExist "$(otherVaultPath "$vaultFilePath")"
 done
 
 # loop over file glob of files to rekey
@@ -83,7 +84,7 @@ for vaultFilePath in "${@:3}"; do
     exit 1
   fi
 
-  mkdir -p "$(dirname $otherVaultFilePath)"
+  mkdir -p "$(dirname "$otherVaultFilePath")"
 
   # see https://stackoverflow.com/questions/43467180/how-to-decrypt-string-with-ansible-vault-2-3-0
   ## Process - using yq v4 syntax

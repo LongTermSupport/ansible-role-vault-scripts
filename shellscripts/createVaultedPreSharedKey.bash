@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
+scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly scriptDir
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
@@ -10,7 +11,7 @@ USAGE:
 
 This script will generate a pre-shared key (hex string) and encrypt it, then optionally add it to a vault file
 
-Usage: ./$(basename $0) [varname] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv)
+Usage: ./$(basename "$0") [varname] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv)
 
 Please note:
 - The varname must be prefixed with 'vault_'
@@ -19,10 +20,10 @@ Please note:
 - If you specify both an environment in the path and the specifiedEnv parameter, they must match
 
 Examples:
-./$(basename $0) vault_zabbix_psk
-./$(basename $0) vault_zabbix_psk environment/dev/group_vars/zabbixAgent/vault_zabbix_psk.yml
+./$(basename "$0") vault_zabbix_psk
+./$(basename "$0") vault_zabbix_psk environment/dev/group_vars/zabbixAgent/vault_zabbix_psk.yml
 # Environment 'prod' is automatically detected from the path:
-./$(basename $0) vault_zabbix_psk environment/prod/group_vars/zabbixAgent/vault_zabbix_psk.yml
+./$(basename "$0") vault_zabbix_psk environment/prod/group_vars/zabbixAgent/vault_zabbix_psk.yml
 
 "
   exit 1

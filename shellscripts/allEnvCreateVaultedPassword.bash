@@ -1,5 +1,6 @@
 #!/bin/bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
+scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly scriptDir
 cd "$scriptDir"
 # Set up bash
 source ./_allEnv.top.inc.bash
@@ -10,7 +11,7 @@ USAGE:
 
 This script will generate a random password and encrypt it, then add it to a file in each environment.
 
-Usage: ./$(basename $0) [varname] [outputToFile with _env_ as env placeholder]
+Usage: ./$(basename "$0") [varname] [outputToFile with _env_ as env placeholder]
 
 Please note:
 - The varname must start with 'vault_'
@@ -18,7 +19,7 @@ Please note:
 - This script will replace '_env_' with each available environment name and call createVaultedPassword.bash for each one
 
 Examples:
-./$(basename $0) vault_db_password environment/_env_/group_vars/containers/vault_passwords.yml
+./$(basename "$0") vault_db_password environment/_env_/group_vars/containers/vault_passwords.yml
 
 This will create the password in every environment, replacing '_env_' with 'dev', 'prod', etc.
     "

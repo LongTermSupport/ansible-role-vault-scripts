@@ -1,5 +1,6 @@
 #!/bin/bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
+scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly scriptDir
 cd "$scriptDir"
 # Set up bash
 source ./_allEnv.top.inc.bash
@@ -27,7 +28,7 @@ This script will generate unique SSH key pairs with no password protection for e
 You must only use these keys for read-only deploy keys (e.g., read-only access to GitHub repo for deployment).
 You must never use an unprotected key for SSH access to servers.
 
-Usage: ./$(basename $0) [OPTIONS] [varname_prefix] [email] [outputToFile with _env_ as env placeholder]
+Usage: ./$(basename "$0") [OPTIONS] [varname_prefix] [email] [outputToFile with _env_ as env placeholder]
 
 OPTIONS:
   --force                Force overwrite existing keys (default: false)
@@ -46,10 +47,10 @@ Please note:
 - Use --no-skip-existing to get the original behavior (fail on existing keys)
 
 Examples:
-./$(basename $0) vault_github_deploy user@example.com environment/_env_/group_vars/containers/vault_github_deploy_keys.yml
-./$(basename $0) --force vault_github_deploy user@example.com environment/_env_/group_vars/containers/vault_github_deploy_keys.yml
-./$(basename $0) --envs dev,prod vault_github_deploy user@example.com environment/_env_/group_vars/containers/vault_github_deploy_keys.yml
-./$(basename $0) --skip-envs untrusted vault_github_deploy user@example.com environment/_env_/group_vars/containers/vault_github_deploy_keys.yml
+./$(basename "$0") vault_github_deploy user@example.com environment/_env_/group_vars/containers/vault_github_deploy_keys.yml
+./$(basename "$0") --force vault_github_deploy user@example.com environment/_env_/group_vars/containers/vault_github_deploy_keys.yml
+./$(basename "$0") --envs dev,prod vault_github_deploy user@example.com environment/_env_/group_vars/containers/vault_github_deploy_keys.yml
+./$(basename "$0") --skip-envs untrusted vault_github_deploy user@example.com environment/_env_/group_vars/containers/vault_github_deploy_keys.yml
 
 This will create a unique key pair in specified environments, replacing '_env_' with 'dev', 'prod', etc.
 Each environment will have these variables:

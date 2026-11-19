@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
+scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly scriptDir
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
@@ -11,7 +12,7 @@ if (($# < 1 )); then
 
   This script will generate a vault secret file for the specifiedEnv
 
-  $(basename $0) (optional: specifiedEnv - defaults to $defaultEnv) (optional: update pass a second param of 'update' to overwrite an existing vault secret)
+  $(basename "$0") (optional: specifiedEnv - defaults to $defaultEnv) (optional: update pass a second param of 'update' to overwrite an existing vault secret)
 
   "
   exit 1
@@ -30,7 +31,7 @@ if [[ -f "$fileToCreate" && "$update" != "update" ]]; then
 
   If you want to update an existing secrets file, for example to add a new env, please run:
 
-  ./$(basename $0) $specifiedEnv update
+  ./$(basename "$0") $specifiedEnv update
 
   "
   exit 1

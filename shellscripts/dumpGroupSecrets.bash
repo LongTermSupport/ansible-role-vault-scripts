@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
+scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly scriptDir
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
@@ -12,7 +13,7 @@ if [[ "$*" == *-h* ]]; then
 
   This script will dump all the secrets in the specifiedEnv
 
-  $(basename $0) (optional: specifiedEnv - defaults to $defaultEnv) (optional: singleVariable to dump)
+  $(basename "$0") (optional: specifiedEnv - defaults to $defaultEnv) (optional: singleVariable to dump)
 
   "
   exit 1
@@ -32,7 +33,7 @@ Dumping Single Vaulted Variable: $singleVariable
   ANSIBLE_STDOUT_CALLBACK=minimal ansible localhost \
   -m import_role \
   -a name="$roleName" \
-  --vault-id "${specifiedEnv}@vault-pass-"${specifiedEnv}.secret \
+  --vault-id "${specifiedEnv}@vault-pass-${specifiedEnv}".secret \
   -i "$projectDir/environment/$specifiedEnv" \
   --extra-vars "env_dir='$projectDir/environment/$specifiedEnv' single_variable=$singleVariable" \
   | grep -oP '(?<=msg": ").*?(?=")' \
@@ -47,7 +48,7 @@ Dumping All Vaulted Variables:
 ansible localhost \
   -m import_role \
   -a name="$roleName" \
-  --vault-id "${specifiedEnv}@vault-pass-"${specifiedEnv}.secret \
+  --vault-id "${specifiedEnv}@vault-pass-${specifiedEnv}".secret \
   -i "$projectDir/environment/$specifiedEnv" \
   --extra-vars env_dir="$projectDir/environment/$specifiedEnv"
 echo

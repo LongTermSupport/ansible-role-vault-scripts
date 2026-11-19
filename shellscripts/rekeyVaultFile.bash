@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
+scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly scriptDir
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
@@ -9,7 +10,7 @@ if (( $# < 5 )); then
   echo "
   Usage
 
-  $(basename $0) [currentKeyFileID] [currentKeyFilePath] [newKeyFileID] [newKeyFilePath] [vaultFilePaths ...]
+  $(basename "$0") [currentKeyFileID] [currentKeyFilePath] [newKeyFileID] [newKeyFilePath] [vaultFilePaths ...]
 
   "
   exit 1

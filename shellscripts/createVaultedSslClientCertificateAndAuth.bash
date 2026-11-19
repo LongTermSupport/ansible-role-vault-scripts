@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
+scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly scriptDir
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
@@ -14,7 +15,7 @@ used to create a client certificate which can be used with nginx etc for client 
 This script does not currently support creating more than one client SSL certificate, though it would not be a
 difficult thing to add in.
 
-Usage: ./$(basename $0) [varname_prefix] [subj] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv) (optional: expiryDays) (optional: clientSubj)
+Usage: ./$(basename "$0") [varname_prefix] [subj] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv) (optional: expiryDays) (optional: clientSubj)
 
 Please note:
 - The varname_prefix must start with 'vault_'
@@ -25,10 +26,10 @@ Please note:
 - clientSubj defaults to the same as subj but with 'Client ' prefixed to the CN
 
 Examples:
-./$(basename $0) vault_client_foo '/C=GB/ST=England/L=Shipley/O=Foo Ltd/CN=Foo Ltd/emailAddress=info@example.com'
-./$(basename $0) vault_client_foo '/C=GB/ST=England/L=Shipley/O=Foo Ltd/CN=Foo Ltd/emailAddress=info@example.com' environment/dev/group_vars/db/vault_client_certs.yml
+./$(basename "$0") vault_client_foo '/C=GB/ST=England/L=Shipley/O=Foo Ltd/CN=Foo Ltd/emailAddress=info@example.com'
+./$(basename "$0") vault_client_foo '/C=GB/ST=England/L=Shipley/O=Foo Ltd/CN=Foo Ltd/emailAddress=info@example.com' environment/dev/group_vars/db/vault_client_certs.yml
 # Environment 'prod' is automatically detected from the path:
-./$(basename $0) vault_client_foo '/C=GB/ST=England/L=Shipley/O=Foo Ltd/CN=Foo Ltd/emailAddress=info@example.com' environment/prod/group_vars/db/vault_client_certs.yml
+./$(basename "$0") vault_client_foo '/C=GB/ST=England/L=Shipley/O=Foo Ltd/CN=Foo Ltd/emailAddress=info@example.com' environment/prod/group_vars/db/vault_client_certs.yml
 
 This will generate multiple encrypted files for each component of the client certificates.
     "
@@ -272,7 +273,7 @@ openssl req \
     -key "$fileCaKey" \
     -new \
     -x509 \
-    -days $expiryDays \
+    -days "$expiryDays" \
     -sha256 \
     -extensions v3_ca \
     -out "$fileCaCert" \
@@ -321,7 +322,7 @@ echo "Creating certificate at $workDir/$fileClientCert"
 
 openssl x509 \
     -req \
-    -days $expiryDays \
+    -days "$expiryDays" \
     -passin file:"$fileCaPassfile" \
     -in "$fileClientCsr" \
     -CA "$fileCaCert" \
@@ -343,8 +344,8 @@ echo "
 Creating Ansible Vaulted Strings
 #################################
 "
-for f in $workDir/*; do
-  fileName="$(basename $f)"
+for f in "$workDir"/*; do
+  fileName="$(basename "$f")"
   case "$fileName" in
     "$fileSSLConfig")
       continue
@@ -355,9 +356,9 @@ for f in $workDir/*; do
   validateOutputToFile "$outputToFile" "$varname"
 
   printf "\n\n# Encrypting %s as %s\n" "$fileName" "$varname"
-  encrypted="$(cat "$f" | ansible-vault encrypt_string \
+  encrypted="$(ansible-vault encrypt_string \
     --vault-id="$finalSpecifiedEnv@$vaultSecretsPath" \
-    --stdin-name "$varname")"
+    --stdin-name "$varname" < "$f")"
 
   writeEncrypted "$encrypted" "$varname" "$outputToFile"
 

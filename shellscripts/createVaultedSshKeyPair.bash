@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
+scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly scriptDir
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
@@ -11,7 +12,7 @@ USAGE:
 This script will generate a random password and then an SSH key pair protected by that password, then optionally add it to the file you specify. 
 It can either leave the generated key files in place or delete them.
 
-Usage: ./$(basename $0) [--replace] [varname_prefix] [email] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv) (optional: keepKeys)
+Usage: ./$(basename "$0") [--replace] [varname_prefix] [email] (optional: outputToFile) (optional: specifiedEnv - defaults to $defaultEnv) (optional: keepKeys)
 
 --replace ROTATES an existing keypair: the current definitions of varname_prefix, its _pub and
 its _passphrase (each one's key line and whole indented !vault ciphertext block) are removed
@@ -30,15 +31,15 @@ Please note:
 - keepKeys can be 'yes' or 'no' (default is 'no')
 
 Examples:
-./$(basename $0) vault_github user@example.com
-./$(basename $0) vault_github user@example.com environment/dev/group_vars/containers/vault_github_deploy_keys.yml
+./$(basename "$0") vault_github user@example.com
+./$(basename "$0") vault_github user@example.com environment/dev/group_vars/containers/vault_github_deploy_keys.yml
 # Environment 'prod' is automatically detected from the path:
-./$(basename $0) vault_github user@example.com environment/prod/group_vars/containers/vault_github_deploy_keys.yml 
+./$(basename "$0") vault_github user@example.com environment/prod/group_vars/containers/vault_github_deploy_keys.yml 
 # Keep the keys after generation:
-./$(basename $0) vault_github user@example.com environment/dev/group_vars/containers/vault_github_deploy_keys.yml dev yes
+./$(basename "$0") vault_github user@example.com environment/dev/group_vars/containers/vault_github_deploy_keys.yml dev yes
 
 # Rotate an existing keypair in place (all three variables replaced together):
-./$(basename $0) --replace vault_github user@example.com environment/dev/group_vars/containers/vault_github_deploy_keys.yml
+./$(basename "$0") --replace vault_github user@example.com environment/dev/group_vars/containers/vault_github_deploy_keys.yml
 
 This will generate a private and public key with variables:
 vault_github
@@ -100,38 +101,41 @@ case "$keepKeys" in
 esac
 
 # SSH Key Password
-readonly password="$(./generatePassword.bash)"
+password="$(./generatePassword.bash)"
+readonly password
 
 #Write out encrypted Password
 readonly varname="${varname_prefix}_passphrase"
 encrypted="$(echo -n "$password" | ansible-vault encrypt_string \
   --vault-id="$finalSpecifiedEnv@$vaultSecretsPath" \
-  --stdin-name $varname)"
+  --stdin-name "$varname")"
 writeEncrypted "$encrypted" "$varname" "$outputToFile"
 
 # Generate keys
 workDir=/tmp/_keys
 rm -rf $workDir
 mkdir $workDir
-ssh-keygen -t ed25519 -C "$email" -N "$password" -f $workDir/${varname_prefix}
+ssh-keygen -t ed25519 -C "$email" -N "$password" -f "$workDir/${varname_prefix}"
 
 # Write Variables
-encryptedPrivKey="$(cat "$workDir/${varname_prefix}" | ansible-vault encrypt_string \
+encryptedPrivKey="$(ansible-vault encrypt_string \
 --vault-id="$finalSpecifiedEnv@$vaultSecretsPath" \
---stdin-name "${varname_prefix}")"
+--stdin-name "${varname_prefix}" < "$workDir/${varname_prefix}")"
 
 writeEncrypted "$encryptedPrivKey" "${varname_prefix}" "$outputToFile"
 
-encryptedPubKey="$(cat "$workDir/${varname_prefix}.pub" | ansible-vault encrypt_string \
+encryptedPubKey="$(ansible-vault encrypt_string \
 --vault-id="$finalSpecifiedEnv@$vaultSecretsPath" \
---stdin-name "${varname_prefix}_pub")"
+--stdin-name "${varname_prefix}_pub" < "$workDir/${varname_prefix}.pub")"
 
 writeEncrypted "$encryptedPubKey" "${varname_prefix}_pub" "$outputToFile"
 
 # Clean up
 if [[ "yes" == "$keepKeys" ]]; then
   printf "\n  Keeping generated keys, they are in:\n%s\n\n" "$workDir"
-  ls -alh $workDir | grep "$varname_prefix"
+  for keyFile in "$workDir"/*"$varname_prefix"*; do
+    ls -alh -- "$keyFile"
+  done
   printf "\n\n\n"
   exit 0
 fi

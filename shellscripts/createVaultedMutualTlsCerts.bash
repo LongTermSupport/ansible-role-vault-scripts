@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-readonly scriptDir="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd -P)"
+scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly scriptDir
 cd "$scriptDir"
 # Set up bash
 source ./_top.inc.bash
@@ -36,7 +37,7 @@ The CLIENT files (client.crt / client.key) are NOT vaulted — they are handed t
 consumer for distribution, and are left on disk in the working directory with the
 ca.crt so you can immediately verify the chain end-to-end.
 
-Usage: ./$(basename $0) [varname_prefix] [serverCn] [outputToFile] (optional: specifiedEnv - defaults to $defaultEnv) (optional: clientName) (optional: caSubject) (optional: certValidityDays) (optional: caValidityDays) (optional: extraSans)
+Usage: ./$(basename "$0") [varname_prefix] [serverCn] [outputToFile] (optional: specifiedEnv - defaults to $defaultEnv) (optional: clientName) (optional: caSubject) (optional: certValidityDays) (optional: caValidityDays) (optional: extraSans)
 
 Please note:
 - The varname_prefix must start with 'vault_'
@@ -50,10 +51,10 @@ Please note:
 
 Examples:
 # Container registry mTLS bundle in the untrusted vault (env auto-detected from the path):
-./$(basename $0) vault_registry registry.priv.ballicom.com environment/untrusted/group_vars/all/vault_registry.yml
+./$(basename "$0") vault_registry registry.priv.ballicom.com environment/untrusted/group_vars/all/vault_registry.yml
 
 # Same, naming the client explicitly and adding a second SAN:
-./$(basename $0) vault_registry registry.priv.ballicom.com environment/untrusted/group_vars/all/vault_registry.yml untrusted ci-runner '' 825 3650 registry.internal
+./$(basename "$0") vault_registry registry.priv.ballicom.com environment/untrusted/group_vars/all/vault_registry.yml untrusted ci-runner '' 825 3650 registry.internal
     "
 }
 

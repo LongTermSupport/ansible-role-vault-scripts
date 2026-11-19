@@ -41,16 +41,17 @@ jobs:
     name: Shellcheck
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    # XXX: we ignore the bash files that are included during execution from the list
-    # files passed to shellcheck. See https://unix.stackexchange.com/questions/164025/exclude-one-pattern-from-glob-match
-    # This still allows shellcheck to analyze them, but we don't pass them to shellcheck
-    # as individual shell scripts; to avoid it from complaining of undefined variables
-    - name: shellcheck
-      run: |
-        cd shellscripts
-        GLOBIGNORE="_*.inc.bash"
-        shellcheck -x *
+      - uses: actions/checkout@v2
+      # XXX: we ignore the bash files that are included during execution from the list
+      # files passed to shellcheck. See https://unix.stackexchange.com/questions/164025/exclude-one-pattern-from-glob-match
+      # This still allows shellcheck to analyze them, but we don't pass them to shellcheck
+      # as individual shell scripts; to avoid it from complaining of undefined variables.
+      # Only *.bash files are scripts: the directory also holds its CLAUDE.md.
+      - name: shellcheck
+        run: |
+          cd shellscripts
+          GLOBIGNORE="_*.inc.bash"
+          shellcheck -x -- *.bash
 
   release:
     name: Release
@@ -63,4 +64,3 @@ jobs:
         uses: robertdebock/galaxy-action@1.0.3
         with:
           galaxy_api_key: ${{ secrets.ansible_galaxy_api_key }}
-
